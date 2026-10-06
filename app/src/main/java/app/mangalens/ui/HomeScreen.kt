@@ -365,7 +365,7 @@ private fun EngineCard(settings: AppSettings, repo: SettingsRepository) {
                 Spacer(Modifier.height(6.dp))
                 Text(
                     if (settings.aiVision != AiVisionMode.OFF)
-                        "The AI reads the page image itself — catches handwriting, stylized lettering and anything OCR misses, in manhwa and manga alike (~150–300 KB per page, less with Data saver). Falls back to text-only, then Google, automatically."
+                        "L’IA lit directement l’image — elle peut repérer l’écriture manuscrite, les lettrages stylisés et ce que l’OCR ne détecte pas (~150–300 Ko par page, moins avec l’économie de données). En cas d’échec, passage automatique au texte seul puis à Google."
                     else
                         "Only OCR'd text is sent (a few KB). Best for very slow internet; stylized lettering depends on on-device OCR.",
                     style = MaterialTheme.typography.bodySmall,
