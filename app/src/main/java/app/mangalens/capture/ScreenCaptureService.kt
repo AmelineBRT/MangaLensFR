@@ -172,6 +172,7 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
     private var controller: OverlayController? = null
     private val ocr = OcrEngine()
     private val cache = TranslationCache()
+    private val pageReplay = PageReplayCache()
     // lazy: these need a Context, which a Service only has after construction
     private val glossary by lazy { GlossaryStore(this) }
     private val cast by lazy { CastBook(this) }
@@ -852,6 +853,23 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
                         return@launch
                     }
                     bmp = fresh
+
+                    // Reuse a completed translation when the reader scrolls
+                    // back to a page already seen in this session.
+                    if (auto && !translateOutsideBalloons) {
+                        val currentThumb = FrameStability.grayThumbOf(fresh)
+                        val replay = pageReplay.get(currentThumb, capW, capH)
+                        if (replay != null && replay.isNotEmpty()) {
+                            shownThumb = currentThumb
+                            lastShown = replay
+                            paintCards(replay)
+                            state = State.SHOWING
+                            setPill("↩ ${replay.size} · déjà traduit", 1400)
+                            works.noteTranslated(System.currentTimeMillis(), glossary.snapshot().keys)
+                            return@run
+                        }
+                    }
+
                     setPill("traduction en cours…")
                     withContext(Dispatchers.Default) {
                         shownThumb = FrameStability.grayThumbOf(fresh)
@@ -884,6 +902,10 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
                 suppressUntil = SystemClock.uptimeMillis() + 500
                 paintCards(shown)
                 state = State.SHOWING
+                // Remember the finished translation for later scroll-backs.
+                if (shown.isNotEmpty() && shownThumb != null) {
+                    pageReplay.put(shownThumb!!, shown)
+                }
                 // A page with dialogue keeps the current work aactif and feeds it
                 // the names that identify it; a run of pages without any means
                 // the reader has left the story — an index, a cover, a menu.
