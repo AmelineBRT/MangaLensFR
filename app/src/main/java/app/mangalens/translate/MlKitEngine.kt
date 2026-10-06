@@ -20,7 +20,13 @@ class MlKitEngine : TranslationEngine {
 
     override suspend fun translate(items: List<String>, lang: SourceLang): List<String> {
         val effective = if (lang == SourceLang.AUTO) {
-            if (items.any { it.any { c -> app.mangalens.ocr.Script.isCjk(c) } }) SourceLang.KO else SourceLang.AUTO
+            val sample = items.joinToString(" ")
+            when {
+                sample.any { c -> c in '\uAC00'..'\uD7AF' } -> SourceLang.KO
+                sample.any { c -> c in '\u3040'..'\u30FF' } -> SourceLang.JA
+                sample.any { c -> c in '\u4E00'..'\u9FFF' } -> SourceLang.ZH
+                else -> SourceLang.AUTO
+            }
         } else lang
         val translator = translatorFor(effective)
         return items.map { translator.translate(it).await() }
