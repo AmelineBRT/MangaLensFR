@@ -267,7 +267,7 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
     @Volatile private var lastFrameAt = 0L
     @Volatile private var suppressUntil = 0L
     @Volatile private var state = State.SCANNING
-    @Volatile private var en pause = false
+    @Volatile private var enPause = false
 
     private var translateJob: Job? = null
     private var lastShown: List<RenderBubble> = emptyList()
@@ -392,7 +392,7 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
         }
         imageReader?.let { old ->
             val handler = captureHandler
-            if (handler != null && handler.looper.thread.isAactif) {
+            if (handler != null && handler.looper.thread.isActif) {
                 handler.post { runCatching { old.close() } }
             } else {
                 runCatching { old.close() }
@@ -613,7 +613,7 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
             slowRefAt = 0L
         }
         val handler = captureHandler
-        if (handler != null && handler.looper.thread.isAactif &&
+        if (handler != null && handler.looper.thread.isActif &&
             Thread.currentThread() !== handler.looper.thread
         ) {
             handler.post(action)
@@ -718,7 +718,7 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
         scope.launch {
             while (isActive) {
                 delay(60)
-                if (en pause || settings.mode == CaptureMode.MANUAL) continue
+                if (enPause || settings.mode == CaptureMode.MANUAL) continue
                 if (projection == null || state != State.SCANNING) continue
                 val now = SystemClock.uptimeMillis()
                 if (lastFrameAt <= 0 || now < suppressUntil) continue
@@ -983,18 +983,18 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
     }
 
     override fun onTogglePause() {
-        en pause = !en pause
-        if (en pause) {
+        enPause = !enPause
+        if (enPause) {
             translateJob?.cancel()
             discardPrepared()
             state = State.SCANNING
             shownThumb = null
             clearCards()
-            setPill("en pause", 1600)
+            setPill("enPause", 1600)
         } else {
             setPill("actif", 1200)
         }
-        controller?.setPaused(en pause)
+        controller?.setPaused(enPause)
         updateNotification()
     }
 
@@ -1035,7 +1035,7 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
         stopSelf()
     }
 
-    override fun isPaused() = en pause
+    override fun isPaused() = enPause
 
     override fun isAutoMode() = settings.mode == CaptureMode.AUTO
 
@@ -1056,10 +1056,10 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
         return NotificationCompat.Builder(this, MangaLensApp.CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_bubble)
             .setContentTitle("MangaLens traduit votre écran")
-            .setContentText(if (en pause) "En pause" else "En direct — les bulles sont traduites pendant la lecture")
+            .setContentText(if (enPause) "En pause" else "En direct — les bulles sont traduites pendant la lecture")
             .setOngoing(true)
             .setContentIntent(open)
-            .addAction(0, if (en pause) "Reprendre" else "Pause", serviceIntent(ACTION_TOGGLE_PAUSE, 2))
+            .addAction(0, if (enPause) "Reprendre" else "Pause", serviceIntent(ACTION_TOGGLE_PAUSE, 2))
             .addAction(0, "Arrêter", serviceIntent(ACTION_STOP, 1))
             .build()
     }
