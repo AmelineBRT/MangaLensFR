@@ -53,10 +53,10 @@ class FloatingButtonViewTest {
     @Test
     fun `content description tracks the state for screen readers`() {
         val v = FloatingButtonView(RuntimeEnvironment.getApplication())
-        assertEquals("Translation on: tap to pause", v.contentDescription)
+        assertEquals("Traduction active : toucher pour mettre en pause", v.contentDescription)
         v.setPaused(true)
-        assertEquals("Translation paused: tap to resume", v.contentDescription)
+        assertEquals("Traduction en pause : toucher pour reprendre", v.contentDescription)
         v.setPaused(false)
-        assertEquals("Translation on: tap to pause", v.contentDescription)
+        assertEquals("Traduction active : toucher pour mettre en pause", v.contentDescription)
     }
 }
