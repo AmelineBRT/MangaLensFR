@@ -447,9 +447,9 @@ private fun EngineCard(settings: AppSettings, repo: SettingsRepository) {
                             testResult = try {
                                 val sample = listOf("I'll stay with you. It's okay.")
                                 val out = when (settings.engine) {
-                                    EngineKind.LLM -> LlmEngine(draftSettings).translate(sample, SourceLang.KO)
-                                    EngineKind.MLKIT -> MlKitEngine().translate(sample, SourceLang.KO)
-                                    EngineKind.GOOGLE -> GoogleFreeEngine().translate(sample, SourceLang.KO)
+                                    EngineKind.LLM -> LlmEngine(draftSettings).translate(sample, SourceLang.AUTO)
+                                    EngineKind.MLKIT -> MlKitEngine().translate(sample, SourceLang.AUTO)
+                                    EngineKind.GOOGLE -> GoogleFreeEngine().translate(sample, SourceLang.AUTO)
                                 }
                                 "“I'll stay with you. It's okay.” → “" + out.first() + "”"
                             } catch (e: Exception) {
