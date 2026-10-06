@@ -873,11 +873,10 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
                 }
 
                 val analysis: TranslatePipeline.Analysis = ahead ?: run {
-                    val fresh = bmp ?: run {
+                    val frame: Bitmap = bmp ?: run {
                         state = State.SCANNING
                         return@run null
                     }
-                    val frame = fresh
 
                     setPill("traduction en cours…")
                     withContext(Dispatchers.Default) {
