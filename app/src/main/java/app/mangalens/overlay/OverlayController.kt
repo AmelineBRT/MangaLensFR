@@ -258,15 +258,15 @@ class OverlayController(private val context: Context, private val listener: List
             })
         }
 
-        item("⚡  Translate now") { listener.onTranslateNow() }
-        item(if (listener.isPaused()) "▶  Resume live mode" else "⏸  Pause") { listener.onTogglePause() }
-        item(if (listener.isAutoMode()) "✋  Switch to tap-to-translate" else "🔄  Switch to auto-live") {
+        item("⚡  Traduire maintenant") { listener.onTranslateNow() }
+        item(if (listener.isPaused()) "▶  Reprendre la traduction en direct" else "⏸  Mettre en pause") { listener.onTogglePause() }
+        item(if (listener.isAutoMode()) "✋  Passer au mode toucher pour traduire" else "🔄  Passer au mode automatique") {
             listener.onToggleMode()
         }
-        item("👁  Peek at original (4 s)") { listener.onPeek() }
-        item("📖  New series — forget names so far") { listener.onNewSeries() }
-        item("⚙  Settings") { listener.onOpenSettings() }
-        item("✕  Stop translating") { listener.onStopRequested() }
+        item("👁  Voir l’original (4 s)") { listener.onPeek() }
+        item("📖  Nouvelle série — oublier les noms mémorisés") { listener.onNewSeries() }
+        item("⚙  Réglages") { listener.onOpenSettings() }
+        item("✕  Arrêter la traduction") { listener.onStopRequested() }
 
         val lp = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
