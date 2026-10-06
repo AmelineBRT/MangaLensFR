@@ -858,7 +858,7 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
                     bmp = fresh
                 }
 
-                if (ahead == null && auto && !translateOutsideBalloons && bmp != null) {
+                if (ahead == null && !translateOutsideBalloons && bmp != null) {
                     val currentThumb = FrameStability.grayThumbOf(bmp!!)
                     val replay = pageReplay.get(currentThumb, capW, capH)
                     if (replay != null && replay.isNotEmpty()) {
