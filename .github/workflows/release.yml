@@ -6,8 +6,8 @@ name: release
 #   - run this workflow manually with the tag as input.
 # Whichever door is used, the release step creates the tag on the release
 # commit if it doesn't already exist. The permanent links are:
-#   https://github.com/mkisontop/mangalens/releases/latest/download/MangaLens.apk
-#   https://github.com/mkisontop/mangalens/releases/latest/download/MangaLens-legacy-update.apk
+#   https://github.com/AmelineBRT/MangaLensFR/releases/latest/download/MangaLens.apk
+#   https://github.com/AmelineBRT/MangaLensFR/releases/latest/download/MangaLens-legacy-update.apk
 
 on:
   push:
@@ -154,7 +154,7 @@ jobs:
 
           previous="$RUNNER_TEMP/previous-release.apk"
           if ! curl --fail --location --silent --show-error \
-            "https://github.com/mkisontop/mangalens/releases/latest/download/MangaLens.apk" \
+            "https://github.com/AmelineBRT/MangaLensFR/releases/latest/download/MangaLens.apk" \
             --output "$previous"; then
             echo "::error::Could not download the previous stable APK to validate versionCode."
             exit 1
