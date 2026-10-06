@@ -105,8 +105,9 @@ class TranslatePipeline(
         bitmap: Bitmap,
         settings: AppSettings,
         exclusions: List<Rect> = emptyList(),
+        translateOutsideBalloons: Boolean = false,
         onPartial: (suspend (PageResult) -> Unit)? = null,
-    ): PageResult = translate(analyze(bitmap, settings, exclusions), settings, onPartial)
+    ): PageResult = translate(analyze(bitmap, settings, exclusions), settings, translateOutsideBalloons, onPartial)
 
     /**
      * Reads the page: balloons and panels from the pixels, lines from OCR,
@@ -255,6 +256,7 @@ class TranslatePipeline(
     suspend fun translate(
         analysis: Analysis,
         settings: AppSettings,
+        translateOutsideBalloons: Boolean = false,
         onPartial: (suspend (PageResult) -> Unit)? = null,
     ): PageResult {
         val bitmap = analysis.bitmap
@@ -317,7 +319,14 @@ class TranslatePipeline(
         useVision: Boolean,
     ): PageResult {
         val balloons = detected.map { it.box }
-        val targetBubbles = dialogueInBalloons(bubbles, detected)
+        val targetBubbles = if (translateOutsideBalloons) {
+            // One-shot override from the long-press menu: include ordinary
+            // OCR dialogue outside detected balloons/rectangles too.
+            // SFX/onomatopoeia remain untouched.
+            bubbles.filter { it.kind == BubbleKind.DIALOGUE }
+        } else {
+            dialogueInBalloons(bubbles, detected)
+        }
 
         if (settings.engine != EngineKind.LLM) {
             val result = machineTranslate(bitmap, targetBubbles, ocrResult.lang, settings, detected)
