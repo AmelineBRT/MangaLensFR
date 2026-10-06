@@ -14,7 +14,7 @@ import kotlinx.coroutines.tasks.await
  */
 class MlKitEngine : TranslationEngine {
 
-    override val label = "On-device"
+    override val label = "Hors ligne"
 
     private val translators = HashMap<String, Translator>()
 
