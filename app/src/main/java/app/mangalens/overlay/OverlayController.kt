@@ -24,6 +24,8 @@ class OverlayController(private val context: Context, private val listener: List
 
     interface Listener {
         fun onTranslateNow()
+        /** Translate ordinary OCR dialogue outside detected balloons/rectangles for one pass. */
+        fun onTranslateOutsideNow()
         fun onTogglePause()
         fun onToggleMode()
         fun onPeek()
@@ -259,6 +261,7 @@ class OverlayController(private val context: Context, private val listener: List
         }
 
         item("⚡  Traduire maintenant") { listener.onTranslateNow() }
+        item("🔎  Traduire aussi hors bulles/rectangles") { listener.onTranslateOutsideNow() }
         item(if (listener.isPaused()) "▶  Reprendre la traduction en direct" else "⏸  Mettre en pause") { listener.onTogglePause() }
         item(if (listener.isAutoMode()) "✋  Passer au mode toucher pour traduire" else "🔄  Passer au mode automatique") {
             listener.onToggleMode()
