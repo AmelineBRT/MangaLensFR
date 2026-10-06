@@ -408,7 +408,7 @@ private fun EngineCard(settings: AppSettings, repo: SettingsRepository) {
                     }
                 }
                 Text(
-                    "Outlines every balloon found and keeps a status line up: " +
+                    "Entoure chaque bulle détectée et affiche : " +
                         "ocr (text lines read) · balloons (found in the page) · " +
                         "regions (sent to translate) · cards (painted). " +
                         "If a balloon is untranslated, this says which step lost it.",
