@@ -445,13 +445,13 @@ private fun EngineCard(settings: AppSettings, repo: SettingsRepository) {
                         testResult = null
                         scope.launch {
                             testResult = try {
-                                val sample = listOf("괜찮아. 내가 지켜줄게.")
+                                val sample = listOf("I'll stay with you. It's okay.")
                                 val out = when (settings.engine) {
                                     EngineKind.LLM -> LlmEngine(draftSettings).translate(sample, SourceLang.KO)
                                     EngineKind.MLKIT -> MlKitEngine().translate(sample, SourceLang.KO)
                                     EngineKind.GOOGLE -> GoogleFreeEngine().translate(sample, SourceLang.KO)
                                 }
-                                "“괜찮아. 내가 지켜줄게.” → “" + out.first() + "”"
+                                "“I'll stay with you. It's okay.” → “" + out.first() + "”"
                             } catch (e: Exception) {
                                 "⚠ " + (e.message ?: "failed")
                             } finally {
@@ -543,7 +543,7 @@ private fun ReadingCard(settings: AppSettings, repo: SettingsRepository) {
         Column(Modifier.padding(16.dp)) {
             SectionTitle("Reading")
             Spacer(Modifier.height(10.dp))
-            Text("Source language", style = MaterialTheme.typography.bodyMedium)
+            Text("Source language · Auto detects English or CJK", style = MaterialTheme.typography.bodyMedium)
             Spacer(Modifier.height(6.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Chip("Auto", settings.sourceLang == SourceLang.AUTO) {
