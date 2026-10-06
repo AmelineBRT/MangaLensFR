@@ -69,7 +69,7 @@ class FloatingButtonView(context: Context) : View(context) {
     private var gradientBottom = 0
 
     init {
-        contentDescription = "Translation on: tap to pause"
+        contentDescription = "Traduction active : toucher pour mettre en pause"
         // The elevation shadow used to come from the oval background drawable;
         // a canvas-drawn view has none, so the disc's silhouette is declared
         // here (alpha included — a custom outline defaults to 0 and casts
@@ -94,7 +94,7 @@ class FloatingButtonView(context: Context) : View(context) {
         if (this.paused == paused) return
         this.paused = paused
         contentDescription =
-            if (paused) "Translation paused: tap to resume" else "Translation on: tap to pause"
+            if (paused) "Traduction en pause : toucher pour reprendre" else "Traduction active : toucher pour mettre en pause"
         stateAnim?.cancel()
         stateAnim = ValueAnimator.ofFloat(liveness, if (paused) 0f else 1f).apply {
             duration = 260L
