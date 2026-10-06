@@ -453,7 +453,7 @@ private fun EngineCard(settings: AppSettings, repo: SettingsRepository) {
                                 }
                                 "“I'll stay with you. It's okay.” → “" + out.first() + "”"
                             } catch (e: Exception) {
-                                "⚠ " + (e.message ?: "failed")
+                                "⚠ " + (e.message ?: "échec")
                             } finally {
                                 testing = false
                             }
@@ -476,7 +476,7 @@ private fun ProviderPicker(settings: AppSettings, repo: SettingsRepository) {
     Box {
         OutlinedButton(onClick = { open = true }) {
             Text(
-                "Provider: " + when (settings.provider) {
+                "Fournisseur : " + when (settings.provider) {
                     LlmProvider.ANTHROPIC -> "Anthropic Claude (recommandé)"
                     LlmProvider.OPENAI -> "OpenAI"
                     LlmProvider.GEMINI -> "Google Gemini"
@@ -745,7 +745,7 @@ private fun TipsCard() {
                     "• AI Pro shows a fast draft instantly, then the AI polish replaces it — slow internet never blocks reading.\n" +
                     "• Text mode sends only bubble text; AI Vision sends the page image — only ever to the provider you chose.\n" +
                     "• Names stay consistent: the AI keeps a glossary of characters and terms as you read.\n" +
-                    "• Lecture raws you love? Support the official release when it exists.",
+                    "• Vous aimez lire des raws ? Soutenez la sortie officielle lorsqu’elle existe.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 lineHeight = 20.sp
