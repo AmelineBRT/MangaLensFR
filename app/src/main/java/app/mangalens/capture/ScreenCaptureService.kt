@@ -799,7 +799,7 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
         }
     }
 
-    private fun startTranslate(auto: Boolean) {
+    private fun startTranslate(auto: Boolean, translateOutsideBalloons: Boolean = false) {
         if (state == State.TRANSLATING) return
         state = State.TRANSLATING
         translateJob = scope.launch {
@@ -861,7 +861,7 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
 
                 var draftShown: List<RenderBubble> = emptyList()
                 val result = withContext(Dispatchers.Default) {
-                    pipeline.translate(analysis, settings) { partial ->
+                    pipeline.translate(analysis, settings, translateOutsideBalloons) { partial ->
                         // A draft or a streamed batch landed — paint it now,
                         // the rest of the polish follows.
                         withContext(Dispatchers.Main.immediate) {
@@ -972,6 +972,11 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
     override fun onTranslateNow() {
         if (projection == null || state == State.TRANSLATING) return
         startTranslate(auto = false)
+    }
+
+    override fun onTranslateOutsideNow() {
+        if (projection == null || state == State.TRANSLATING) return
+        startTranslate(auto = false, translateOutsideBalloons = true)
     }
 
     override fun onNewSeries() {
