@@ -872,10 +872,12 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
                     }
                 }
 
-                val analysis: TranslatePipeline.Analysis = ahead ?: run {
+                val analysis: TranslatePipeline.Analysis = if (ahead != null) {
+                    ahead
+                } else {
                     val frame: Bitmap = bmp ?: run {
                         state = State.SCANNING
-                        return@run null
+                        return@launch
                     }
 
                     setPill("traduction en cours…")
@@ -883,9 +885,6 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
                         shownThumb = FrameStability.grayThumbOf(frame)
                         pipeline.analyze(frame, settings, exclusions)
                     }
-                } ?: run {
-                    state = State.SCANNING
-                    return@launch
                 }
 
                 var draftShown: List<RenderBubble> = emptyList()
