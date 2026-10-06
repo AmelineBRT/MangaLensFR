@@ -388,7 +388,7 @@ private fun EngineCard(settings: AppSettings, repo: SettingsRepository) {
                 Spacer(Modifier.height(6.dp))
                 Text(
                     when (settings.aiReasoning) {
-                        AiReasoning.FAST -> "Least thinking the model allows: the polish lands soonest. Fine for clean, horizontal lettering."
+                        AiReasoning.FAST -> "Réflexion minimale : l’amélioration arrive le plus vite. Convient aux lettrages simples et horizontaux."
                         AiReasoning.BALANCED -> "A little thinking on the page image, the least on text. Balloons stream in one by one either way."
                         AiReasoning.THOROUGH -> "The model's full reasoning depth: best speaker attribution and hard lettering, at a longer wait for the first balloon."
                     },
