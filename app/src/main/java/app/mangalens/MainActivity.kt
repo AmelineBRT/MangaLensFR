@@ -53,7 +53,7 @@ class MainActivity : ComponentActivity() {
                 HomeScreen(
                     repo = repo,
                     onStart = { startFlow() },
-                    onStop = { stopCapture() },
+                    onStopRequested = { stopCapture() },
                     onGrantOverlay = { openOverlaySettings() },
                 )
             }
