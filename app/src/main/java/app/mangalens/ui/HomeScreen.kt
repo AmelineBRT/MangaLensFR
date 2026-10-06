@@ -390,7 +390,7 @@ private fun EngineCard(settings: AppSettings, repo: SettingsRepository) {
                     when (settings.aiReasoning) {
                         AiReasoning.FAST -> "Réflexion minimale : l’amélioration arrive le plus vite. Convient aux lettrages simples et horizontaux."
                         AiReasoning.BALANCED -> "Un peu de réflexion sur l’image, minimale sur le texte. Les bulles apparaissent progressivement dans les deux cas."
-                        AiReasoning.THOROUGH -> "The model's full reasoning depth: best speaker attribution and hard lettering, at a longer wait for the first balloon."
+                        AiReasoning.THOROUGH -> "Réflexion maximale : meilleure attribution des personnages et des lettrages difficiles, avec une attente plus longue avant la première bulle."
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
