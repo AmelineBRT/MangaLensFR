@@ -481,7 +481,7 @@ private fun ProviderPicker(settings: AppSettings, repo: SettingsRepository) {
                     LlmProvider.OPENAI -> "OpenAI"
                     LlmProvider.GEMINI -> "Google Gemini"
                     LlmProvider.OPENROUTER -> "OpenRouter"
-                    LlmProvider.CUSTOM -> "Custom endpoint"
+                    LlmProvider.CUSTOM -> "Point d’accès personnalisé"
                 }
             )
         }
@@ -491,11 +491,11 @@ private fun ProviderPicker(settings: AppSettings, repo: SettingsRepository) {
                     text = {
                         Text(
                             when (p) {
-                                LlmProvider.ANTHROPIC -> "Anthropic Claude (recommended)"
+                                LlmProvider.ANTHROPIC -> "Anthropic Claude (recommandé)"
                                 LlmProvider.OPENAI -> "OpenAI"
-                                LlmProvider.GEMINI -> "Google Gemini (free tier)"
+                                LlmProvider.GEMINI -> "Google Gemini (offre gratuite)"
                                 LlmProvider.OPENROUTER -> "OpenRouter"
-                                LlmProvider.CUSTOM -> "Custom OpenAI-compatible endpoint"
+                                LlmProvider.CUSTOM -> "Point d’accès personnalisé compatible OpenAI"
                             }
                         )
                     },
@@ -614,10 +614,10 @@ private fun UpdateCard(update: UpdateChecker.Update) {
                 Text(
                     when {
                         update.requiresReinstall ->
-                            "MangaLens ${update.version} is out, but this installation cannot join the official signing key in place. Record any API keys, download the APK, uninstall MangaLens, then install it. API keys will be cleared."
+                            "MangaLens ${update.version} est disponible, mais cette installation ne peut pas être mise à jour avec la clé de signature officielle. Notez vos clés API, téléchargez l’APK, désinstallez MangaLens puis installez-le. Les clés API seront effacées."
                         update.legacyBridge ->
-                            "MangaLens ${update.version} is out. This one-time compatible APK keeps your data while moving 0.9.1 to the private release key."
-                        else -> "MangaLens ${update.version} is out."
+                            "MangaLens ${update.version} est disponible. Cet APK compatible, utilisé une seule fois, conserve vos données tout en passant de 0.9.1 à la clé de publication privée."
+                        else -> "MangaLens ${update.version} est disponible."
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -625,7 +625,7 @@ private fun UpdateCard(update: UpdateChecker.Update) {
             }
             Spacer(Modifier.width(10.dp))
             Button(onClick = { uriHandler.openUri(update.url) }) {
-                Text(if (update.requiresReinstall) "Download" else "Télécharger l'APK")
+                Text(if (update.requiresReinstall) "Télécharger" else "Télécharger l'APK")
             }
         }
     }
@@ -634,36 +634,36 @@ private fun UpdateCard(update: UpdateChecker.Update) {
 private data class ProviderKeyHelp(val message: String, val linkLabel: String = "", val url: String? = null)
 
 private fun apiKeyLabel(provider: LlmProvider): String = when (provider) {
-    LlmProvider.ANTHROPIC -> "Anthropic API key"
-    LlmProvider.OPENAI -> "OpenAI API key"
-    LlmProvider.GEMINI -> "Gemini API key"
-    LlmProvider.OPENROUTER -> "OpenRouter API key"
-    LlmProvider.CUSTOM -> "Bearer token (optional)"
+    LlmProvider.ANTHROPIC -> "Clé API Anthropic"
+    LlmProvider.OPENAI -> "Clé API OpenAI"
+    LlmProvider.GEMINI -> "Clé API Gemini"
+    LlmProvider.OPENROUTER -> "Clé API OpenRouter"
+    LlmProvider.CUSTOM -> "Jeton Bearer (facultatif)"
 }
 
 private fun providerKeyHelp(provider: LlmProvider): ProviderKeyHelp = when (provider) {
     LlmProvider.ANTHROPIC -> ProviderKeyHelp(
-        "This key is saved only for Anthropic.",
-        "Create an Anthropic key →",
+        "Cette clé est enregistrée uniquement pour Anthropic.",
+        "Créer une clé Anthropic →",
         "https://console.anthropic.com/settings/keys",
     )
     LlmProvider.OPENAI -> ProviderKeyHelp(
-        "This key is saved only for OpenAI.",
-        "Create an OpenAI key →",
+        "Cette clé est enregistrée uniquement pour OpenAI.",
+        "Créer une clé OpenAI →",
         "https://platform.openai.com/api-keys",
     )
     LlmProvider.GEMINI -> ProviderKeyHelp(
-        "Gemini has a free tier (no card needed). This key is saved only for Gemini.",
-        "Create a Gemini key →",
+        "Gemini propose une offre gratuite (aucune carte bancaire nécessaire). Cette clé est enregistrée uniquement pour Gemini.",
+        "Créer une clé Gemini →",
         "https://aistudio.google.com/apikey",
     )
     LlmProvider.OPENROUTER -> ProviderKeyHelp(
-        "Paste your OpenRouter key here. It stays separate from your Anthropic, OpenAI and Gemini keys.",
-        "Create or choose an OpenRouter key →",
+        "Collez ici votre clé OpenRouter. Elle reste séparée de vos clés Anthropic, OpenAI et Gemini.",
+        "Créer ou choisir une clé OpenRouter →",
         "https://openrouter.ai/settings/keys",
     )
     LlmProvider.CUSTOM -> ProviderKeyHelp(
-        "Optional bearer token for this custom endpoint. For safety, old shared keys are not migrated here; enter the token intended for this URL.",
+        "Jeton Bearer facultatif pour ce point d’accès personnalisé. Par sécurité, les anciennes clés partagées ne sont pas transférées ici ; saisissez le jeton prévu pour cette URL.",
     )
 }
 
@@ -684,7 +684,7 @@ private fun GeminiModelRow(apiKey: String, onPick: (String) -> Unit) {
             enabled = !loading,
             onClick = {
                 if (apiKey.isBlank()) {
-                    error = "Paste your API key first — the list comes from your account."
+                    error = "Saisissez d’abord votre clé API : la liste provient de votre compte."
                     return@OutlinedButton
                 }
                 error = null
@@ -697,15 +697,15 @@ private fun GeminiModelRow(apiKey: String, onPick: (String) -> Unit) {
                     try {
                         models = ModelCatalog.gemini(apiKey)
                         open = models.isNotEmpty()
-                        if (models.isEmpty()) error = "Google returned no usable models."
+                        if (models.isEmpty()) error = "Google n’a renvoyé aucun modèle utilisable."
                     } catch (e: Exception) {
-                        error = "Couldn't fetch models: " + (e.message ?: "network error")
+                        error = "Impossible de récupérer les modèles : " + (e.message ?: "erreur réseau")
                     } finally {
                         loading = false
                     }
                 }
             }
-        ) { Text(if (loading) "Fetching live model list…" else "Choose from Google's live model list ▾") }
+        ) { Text(if (loading) "Récupération de la liste des modèles…" else "Choisir dans la liste des modèles Google ▾") }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             models.forEach { m ->
                 DropdownMenuItem(
