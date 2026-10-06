@@ -308,20 +308,24 @@ class BubbleOverlayView(context: Context) : View(context) {
         val mask = balloon.mask
         if (w < 1 || h < 1 || mask.size < w * h) return null
 
-        // BalloonFinder's mask is already the enclosed PAPER INTERIOR: the
-        // outline and the artwork outside the balloon are not part of it.
-        // The previous one-cell erosion deliberately left an unpainted ring
-        // inside the balloon, which is exactly where source lettering could
-        // remain visible on dense/stylized bubbles. Paint the complete mask.
+        // Preserve a one-cell safety ring so the balloon's original outline
+        // is not painted over. The detected source lettering sits inside the
+        // balloon; this ring is only the outline-preservation margin.
         val colors = fill?.takeIf { it.width == w && it.height == h }?.let { f ->
             IntArray(w * h).also { f.getPixels(it, 0, w, 0, 0, w, h) }
         }
         val px = IntArray(w * h)
         var any = false
-        for (i in px.indices) {
-            if (!mask[i]) continue
-            px[i] = if (colors != null) colors[i] or (0xFF shl 24) else Color.WHITE
-            any = true
+        for (y in 0 until h) {
+            for (x in 0 until w) {
+                val i = y * w + x
+                if (!mask[i]) continue
+                val interior = x > 0 && x + 1 < w && y > 0 && y + 1 < h &&
+                    mask[i - 1] && mask[i + 1] && mask[i - w] && mask[i + w]
+                if (!interior) continue
+                px[i] = if (colors != null) colors[i] or (0xFF shl 24) else Color.WHITE
+                any = true
+            }
         }
         if (!any) return null
         return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
