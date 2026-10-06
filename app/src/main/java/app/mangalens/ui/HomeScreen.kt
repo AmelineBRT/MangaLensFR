@@ -346,7 +346,7 @@ private fun EngineCard(settings: AppSettings, repo: SettingsRepository) {
                             customUrlEdited = true
                             scope.launch { repo.setCustomUrl(it.trim()) }
                         },
-                        label = { Text("Chat-completions endpoint URL") },
+                        label = { Text("URL du point d'accès Chat Completions") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
