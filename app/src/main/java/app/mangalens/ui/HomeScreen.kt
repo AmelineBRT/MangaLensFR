@@ -477,7 +477,7 @@ private fun ProviderPicker(settings: AppSettings, repo: SettingsRepository) {
         OutlinedButton(onClick = { open = true }) {
             Text(
                 "Provider: " + when (settings.provider) {
-                    LlmProvider.ANTHROPIC -> "Anthropic Claude (recommended)"
+                    LlmProvider.ANTHROPIC -> "Anthropic Claude (recommandé)"
                     LlmProvider.OPENAI -> "OpenAI"
                     LlmProvider.GEMINI -> "Google Gemini"
                     LlmProvider.OPENROUTER -> "OpenRouter"
