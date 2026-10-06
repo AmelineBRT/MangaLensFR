@@ -372,7 +372,7 @@ private fun EngineCard(settings: AppSettings, repo: SettingsRepository) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(Modifier.height(10.dp))
-                Text("AI reasoning — how long the model may think per page", style = MaterialTheme.typography.bodyMedium)
+                Text("Raisonnement IA — durée de réflexion du modèle par page", style = MaterialTheme.typography.bodyMedium)
                 Spacer(Modifier.height(6.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Chip("Fast", settings.aiReasoning == AiReasoning.FAST) {
