@@ -358,7 +358,7 @@ private fun EngineCard(settings: AppSettings, repo: SettingsRepository) {
                     Chip("Vision IA (recommandé)", settings.aiVision != AiVisionMode.OFF) {
                         scope.launch { repo.setAiVision(AiVisionMode.AUTO) }
                     }
-                    Chip("Text only", settings.aiVision == AiVisionMode.OFF) {
+                    Chip("Texte uniquement", settings.aiVision == AiVisionMode.OFF) {
                         scope.launch { repo.setAiVision(AiVisionMode.OFF) }
                     }
                 }
