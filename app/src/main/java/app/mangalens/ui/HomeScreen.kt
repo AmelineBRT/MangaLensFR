@@ -72,7 +72,7 @@ import kotlinx.coroutines.launch
 fun HomeScreen(
     repo: SettingsRepository,
     onStart: () -> Unit,
-    onStop: () -> Unit,
+    onArrêter: () -> Unit,
     onGrantOverlay: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -113,7 +113,7 @@ fun HomeScreen(
         ) {
             Header()
             Spacer(Modifier.height(18.dp))
-            StatusCard(running, overlayGranted, onStart, onStop, onGrantOverlay)
+            StatusCard(running, overlayGranted, onStart, onArrêter, onGrantOverlay)
             Spacer(Modifier.height(14.dp))
             update?.let {
                 UpdateCard(it)
@@ -121,7 +121,7 @@ fun HomeScreen(
             }
             EngineCard(settings, repo)
             Spacer(Modifier.height(14.dp))
-            ReadingCard(settings, repo)
+            LectureCard(settings, repo)
             Spacer(Modifier.height(14.dp))
             TipsCard()
             Spacer(Modifier.height(24.dp))
@@ -144,7 +144,7 @@ private fun Header() {
         Column {
             Text("MangaLens", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             Text(
-                "Live manhwa · manga · manhua translation over any app",
+                "Traduction en direct des manhwa · manga · manhua dans toutes les applications",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -157,7 +157,7 @@ private fun StatusCard(
     running: Boolean,
     overlayGranted: Boolean,
     onStart: () -> Unit,
-    onStop: () -> Unit,
+    onArrêter: () -> Unit,
     onGrantOverlay: () -> Unit,
 ) {
     Card(elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
@@ -174,33 +174,33 @@ private fun StatusCard(
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    if (running) "Translating your screen" else "Not running",
+                    if (running) "Traduction de l'écran en cours" else "Arrêtée",
                     style = MaterialTheme.typography.titleMedium
                 )
             }
             Spacer(Modifier.height(10.dp))
             if (!overlayGranted) {
                 Text(
-                    "Step 1 · Allow MangaLens to draw over other apps",
+                    "Étape 1 · Autorisez MangaLens à s'afficher par-dessus les autres applications",
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Spacer(Modifier.height(8.dp))
-                OutlinedButton(onClick = onGrantOverlay) { Text("Grant overlay permission") }
+                OutlinedButton(onClick = onGrantOverlay) { Text("Autoriser l'affichage par-dessus les autres applications") }
                 Spacer(Modifier.height(10.dp))
             }
             if (running) {
-                Button(onClick = onStop, modifier = Modifier.fillMaxWidth()) { Text("Stop") }
+                Button(onClick = onArrêter, modifier = Modifier.fillMaxWidth()) { Text("Arrêter") }
             } else {
                 Button(
                     onClick = onStart,
                     enabled = overlayGranted,
                     modifier = Modifier.fillMaxWidth()
-                ) { Text(if (overlayGranted) "Start translating" else "Grant permission first") }
+                ) { Text(if (overlayGranted) "Démarrer la traduction" else "Autorisez d'abord l'affichage") }
             }
             Spacer(Modifier.height(8.dp))
             Text(
-                "Then open Brave and read. When you stop scrolling, bubbles are translated in place. " +
-                    "Tap the floating 文A button to switch translation on or off; long-press it for the quick menu (translate now, peek, settings).",
+                "Ouvrez ensuite Brave et lisez. Quand vous arrêtez de faire défiler la page, les bulles sont traduites directement. " +
+                    "Touchez le bouton flottant 文A pour activer ou désactiver la traduction ; faites un appui long pour ouvrir le menu rapide (traduire maintenant, aperçu, réglages).",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -262,25 +262,25 @@ private fun EngineCard(settings: AppSettings, repo: SettingsRepository) {
 
     Card(elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
         Column(Modifier.padding(16.dp)) {
-            SectionTitle("Translation engine")
+            SectionTitle("Moteur de traduction")
             Spacer(Modifier.height(10.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Chip("Free · Google", settings.engine == EngineKind.GOOGLE) {
+                Chip("Gratuit · Google", settings.engine == EngineKind.GOOGLE) {
                     scope.launch { repo.setEngine(EngineKind.GOOGLE) }
                 }
-                Chip("AI Pro ✨", settings.engine == EngineKind.LLM) {
+                Chip("IA Pro ✨", settings.engine == EngineKind.LLM) {
                     scope.launch { repo.setEngine(EngineKind.LLM) }
                 }
-                Chip("Offline", settings.engine == EngineKind.MLKIT) {
+                Chip("Hors ligne", settings.engine == EngineKind.MLKIT) {
                     scope.launch { repo.setEngine(EngineKind.MLKIT) }
                 }
             }
             Spacer(Modifier.height(8.dp))
             Text(
                 when (settings.engine) {
-                    EngineKind.GOOGLE -> "Works instantly, no setup. Solid everyday quality."
+                    EngineKind.GOOGLE -> "Fonctionne immédiatement, sans configuration. Bonne qualité au quotidien."
                     EngineKind.LLM -> "Feels like an official release: the AI reads whole pages (even the raw image) with story memory, a name glossary, natural tone and honorifics. A fast draft appears instantly; the AI polish replaces it seconds later. Needs an API key — Gemini's is free."
-                    EngineKind.MLKIT -> "100% offline after a one-time ~30 MB model download per language. Roughest quality of the three."
+                    EngineKind.MLKIT -> "100 % hors ligne après le téléchargement initial d'environ 30 Mo par langue. Qualité la plus simple des trois."
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -459,7 +459,7 @@ private fun EngineCard(settings: AppSettings, repo: SettingsRepository) {
                             }
                         }
                     }
-                ) { Text(if (testing) "Testing…" else "Test translation") }
+                ) { Text(if (testing) "Test en cours…" else "Tester la traduction") }
             }
             testResult?.let {
                 Spacer(Modifier.height(6.dp))
@@ -537,13 +537,13 @@ private fun LabeledSlider(
 }
 
 @Composable
-private fun ReadingCard(settings: AppSettings, repo: SettingsRepository) {
+private fun LectureCard(settings: AppSettings, repo: SettingsRepository) {
     val scope = rememberCoroutineScope()
     Card(elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
         Column(Modifier.padding(16.dp)) {
-            SectionTitle("Reading")
+            SectionTitle("Lecture")
             Spacer(Modifier.height(10.dp))
-            Text("Source language · Auto detects English or CJK", style = MaterialTheme.typography.bodyMedium)
+            Text("Langue source · Détection automatique de l'anglais ou des langues asiatiques", style = MaterialTheme.typography.bodyMedium)
             Spacer(Modifier.height(6.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Chip("Auto", settings.sourceLang == SourceLang.AUTO) {
@@ -563,28 +563,28 @@ private fun ReadingCard(settings: AppSettings, repo: SettingsRepository) {
             Text("Mode", style = MaterialTheme.typography.bodyMedium)
             Spacer(Modifier.height(6.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Chip("Auto-live (hands-free)", settings.mode == CaptureMode.AUTO) {
+                Chip("Automatique (sans intervention)", settings.mode == CaptureMode.AUTO) {
                     scope.launch { repo.setMode(CaptureMode.AUTO) }
                 }
-                Chip("Tap to translate", settings.mode == CaptureMode.MANUAL) {
+                Chip("Toucher pour traduire", settings.mode == CaptureMode.MANUAL) {
                     scope.launch { repo.setMode(CaptureMode.MANUAL) }
                 }
             }
             Spacer(Modifier.height(14.dp))
             LabeledSlider(
-                "Reaction time",
+                "Temps de réaction",
                 settings.stabilityMs.toFloat(),
                 200f..900f,
                 { "${it.toInt()} ms" },
             ) { scope.launch { repo.setStabilityMs(it.toInt()) } }
             LabeledSlider(
-                "Text size",
+                "Taille du texte",
                 settings.textScale,
                 0.8f..1.5f,
                 { "${(it * 100).toInt()}%" },
             ) { scope.launch { repo.setTextScale(it) } }
             LabeledSlider(
-                "Ignore top of screen (browser bar)",
+                "Ignorer le haut de l'écran (barre du navigateur)",
                 settings.ignoreTopPct,
                 0f..0.15f,
                 { "${(it * 100).toInt()}%" },
@@ -610,7 +610,7 @@ private fun UpdateCard(update: UpdateChecker.Update) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(Modifier.weight(1f)) {
-                Text("Update available", fontWeight = FontWeight.SemiBold)
+                Text("Mise à jour disponible", fontWeight = FontWeight.SemiBold)
                 Text(
                     when {
                         update.requiresReinstall ->
@@ -625,7 +625,7 @@ private fun UpdateCard(update: UpdateChecker.Update) {
             }
             Spacer(Modifier.width(10.dp))
             Button(onClick = { uriHandler.openUri(update.url) }) {
-                Text(if (update.requiresReinstall) "Download" else "Download APK")
+                Text(if (update.requiresReinstall) "Download" else "Télécharger l'APK")
             }
         }
     }
@@ -736,7 +736,7 @@ private fun GeminiModelRow(apiKey: String, onPick: (String) -> Unit) {
 private fun TipsCard() {
     Card(elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
         Column(Modifier.padding(16.dp)) {
-            SectionTitle("Good to know")
+            SectionTitle("À savoir")
             Spacer(Modifier.height(8.dp))
             Text(
                 "• Brave private tabs block screen capture (they render black). Use a normal tab.\n" +
@@ -745,7 +745,7 @@ private fun TipsCard() {
                     "• AI Pro shows a fast draft instantly, then the AI polish replaces it — slow internet never blocks reading.\n" +
                     "• Text mode sends only bubble text; AI Vision sends the page image — only ever to the provider you chose.\n" +
                     "• Names stay consistent: the AI keeps a glossary of characters and terms as you read.\n" +
-                    "• Reading raws you love? Support the official release when it exists.",
+                    "• Lecture raws you love? Support the official release when it exists.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 lineHeight = 20.sp
