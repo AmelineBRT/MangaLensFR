@@ -115,10 +115,10 @@ internal object LlmHttp {
 
     fun requireConfig(settings: AppSettings) {
         if (settings.provider != LlmProvider.CUSTOM && settings.apiKey.isBlank()) {
-            throw RuntimeException("No API key set for " + providerLabel(settings))
+            throw RuntimeException("Aucune clé API définie pour " + providerLabel(settings))
         }
         if (settings.provider == LlmProvider.CUSTOM && settings.customUrl.isBlank()) {
-            throw RuntimeException("No endpoint URL set")
+            throw RuntimeException("Aucune URL de point d’accès définie")
         }
     }
 
@@ -431,6 +431,6 @@ internal object LlmHttp {
         }
 
         return (if (arrayFirst) asArray() ?: asObject() else asObject() ?: asArray())
-            ?: throw RuntimeException("no JSON in LLM reply")
+            ?: throw RuntimeException("aucun JSON dans la réponse de l’IA")
     }
 }
