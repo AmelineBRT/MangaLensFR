@@ -138,7 +138,7 @@ class OcrEngine {
             lastWinner = best.first
             winStreak = 1
         }
-        if (winStreak >= 2) pinned = best.first
+        if (winStreak >= 2 && best.first != SourceLang.AUTO) pinned = best.first
 
         val winnerText = when (best.first) {
             SourceLang.AUTO -> latinText
