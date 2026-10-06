@@ -846,6 +846,20 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
                         retireLater(prep.bitmap)
                     }
                 }
+                if (ahead == null && auto && !translateOutsideBalloons && bmp != null) {
+                    val currentThumb = FrameStability.grayThumbOf(bmp!!)
+                    val replay = pageReplay.get(currentThumb, capW, capH)
+                    if (replay != null && replay.isNotEmpty()) {
+                        shownThumb = currentThumb
+                        lastShown = replay
+                        paintCards(replay)
+                        state = State.SHOWING
+                        setPill("↩ ${replay.size} · déjà traduit", 1400)
+                        works.noteTranslated(System.currentTimeMillis(), glossary.snapshot().keys)
+                        return@launch
+                    }
+                }
+
                 val analysis: TranslatePipeline.Analysis = ahead ?: run {
                     val fresh = grabCleanBitmap()
                     if (fresh == null) {
@@ -853,22 +867,6 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
                         return@launch
                     }
                     bmp = fresh
-
-                    // Reuse a completed translation when the reader scrolls
-                    // back to a page already seen in this session.
-                    if (auto && !translateOutsideBalloons) {
-                        val currentThumb = FrameStability.grayThumbOf(fresh)
-                        val replay = pageReplay.get(currentThumb, capW, capH)
-                        if (replay != null && replay.isNotEmpty()) {
-                            shownThumb = currentThumb
-                            lastShown = replay
-                            paintCards(replay)
-                            state = State.SHOWING
-                            setPill("↩ ${replay.size} · déjà traduit", 1400)
-                            works.noteTranslated(System.currentTimeMillis(), glossary.snapshot().keys)
-                            return@run
-                        }
-                    }
 
                     setPill("traduction en cours…")
                     withContext(Dispatchers.Default) {
