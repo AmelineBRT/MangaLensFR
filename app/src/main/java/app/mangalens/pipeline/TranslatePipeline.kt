@@ -421,7 +421,7 @@ class TranslatePipeline(
                         // exact OCR geometry.
                         val dialogueIds = targetBubbles.indices
                         val covered = pageBubbles.count { it.id in dialogueIds }
-                        val goodCoverage = dialogueIds.isEmpty() || covered * 2 >= dialogueIds.size
+                        val goodCoverage = dialogueIds.isEmpty() || covered * 2 >= targetBubbles.size
                         if (pageBubbles.isNotEmpty() && goodCoverage) {
                             // A region the model skipped used to render
                             // nothing at all, leaving raw balloons scattered
