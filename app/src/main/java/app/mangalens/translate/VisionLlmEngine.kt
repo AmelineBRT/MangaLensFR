@@ -236,7 +236,7 @@ Answer EVERY region. A region you leave out is left untranslated on the page.
 
 WHO IS SPEAKING — decide this before you translate
 For every dialogue region, work out which character says it, from balloon tail direction, who is drawn mid-gesture or mouth-open, eye lines, and turn-taking with "story_so_far". Return it as "who" (use the established English name, or a stable short descriptor like "tall boy" when the character is unnamed).
-This matters because Japanese, Korean and Chinese omit the subject constantly. Resolve the omitted subject from the speaker, who they are addressing, and the story so far — then commit to it. If it is genuinely unresolvable, use a subjectless English phrasing ("Not going back." / "Can't do it.") rather than inventing a pronoun.
+This matters because Japanese, Korean and Chinese omit the subject constantly. Resolve the omitted subject from the speaker, who they are addressing, and the story so far — then commit to it. If it is genuinely unresolvable, use a subjectless French phrasing ("Je ne reviendrai pas." / "Je ne peux pas.") rather than inventing a pronoun.
 Honour "characters" exactly: once a character has a pronoun there, keep it. Never re-decide a character's gender from one page to the next — a consistent pronoun matters more than a freshly-guessed one.
 
 SPLIT SENTENCES
@@ -247,7 +247,7 @@ VOICE
 - Match each speaker's register from "characters" (blunt/casual/formal/deferential). A character's voice should be recognisable across pages.
 - Keep honorifics that carry nuance (oppa, hyung, noona, unnie, -nim, -ssi, senpai, -san, -sama, -chan, gege, jiejie, shifu).
 - Use "glossary" EXACTLY for known names/terms; romanize new names sensibly.
-- Keep lines as tight as real typeset dialogue. No translator notes, no romanization in "en".
+- Keep lines as tight as real typeset dialogue. No translator notes, no romanization in "en"; every "en" value must be French.
 
 SOUND EFFECTS
 Punchy comic onomatopoeia in CAPS (WHAM, BA-DUMP, KRAK) with "kind":"sfx". Japanese SFX cover states as well as sounds — silence (シーン), staring (ジー), nervousness (ドキドキ) — so translate the effect, not a literal noise. Use "kind":"skip" for UI scraps, watermarks, page numbers and decorative or unreadable SFX.
@@ -257,7 +257,7 @@ If real comic text is visible with NO magenta outline, add an entry WITHOUT an i
 This is ONLY for text that has no outline of its own. Never add a no-id entry for text inside an outlined region — answer that region by its id, once. In particular, put a long line entirely in its region's own "en"; never continue it into a second entry, and never repeat a line you already gave by id. A duplicate entry is painted as a second card next to the balloon it belongs to.
 
 Respond with ONLY this JSON object, no markdown fences:
-{"bubbles":[{"id":<region id>,"who":"<speaker>","src":"<original>","en":"<English>","kind":"dialogue|sfx|skip"}, ...,{"box":[x,y,w,h],"who":"...","src":"...","en":"...","kind":"dialogue"}],"new_terms":{"<source name/term>":"<English>"},"characters":{"<English name>":{"pronoun":"he|she|they","register":"<how they speak>","note":"<role or relationship>"}}}
+{"bubbles":[{"id":<region id>,"who":"<speaker>","src":"<original>","en":"<French translation>","kind":"dialogue|sfx|skip"}, ...,{"box":[x,y,w,h],"who":"...","src":"...","en":"...","kind":"dialogue"}],"new_terms":{"<source name/term>":"<English>"},"characters":{"<English name>":{"pronoun":"he|she|they","register":"<how they speak>","note":"<role or relationship>"}}}
 - One entry per detected region id (plus any no-id extras), in reading order.
 - "new_terms": only newly established proper nouns/terms not already in the glossary.
 - "characters": only characters appearing on THIS page whose pronoun or register is not already recorded, or whom you can now describe more precisely.
