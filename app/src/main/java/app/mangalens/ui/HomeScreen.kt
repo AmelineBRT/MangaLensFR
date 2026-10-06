@@ -403,7 +403,7 @@ private fun EngineCard(settings: AppSettings, repo: SettingsRepository) {
                 }
                 Spacer(Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Chip("Diagnostics — show what was detected", settings.diagnostics) {
+                    Chip("Diagnostics — afficher ce qui a été détecté", settings.diagnostics) {
                         scope.launch { repo.setDiagnostics(!settings.diagnostics) }
                     }
                 }
