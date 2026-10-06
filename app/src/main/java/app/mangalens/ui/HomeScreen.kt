@@ -375,7 +375,7 @@ private fun EngineCard(settings: AppSettings, repo: SettingsRepository) {
                 Text("Raisonnement IA — durée de réflexion du modèle par page", style = MaterialTheme.typography.bodyMedium)
                 Spacer(Modifier.height(6.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Chip("Fast", settings.aiReasoning == AiReasoning.FAST) {
+                    Chip("Rapide", settings.aiReasoning == AiReasoning.FAST) {
                         scope.launch { repo.setAiReasoning(AiReasoning.FAST) }
                     }
                     Chip("Équilibré", settings.aiReasoning == AiReasoning.BALANCED) {
