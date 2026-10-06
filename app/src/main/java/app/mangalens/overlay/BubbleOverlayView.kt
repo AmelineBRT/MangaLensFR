@@ -369,9 +369,8 @@ class BubbleOverlayView(context: Context) : View(context) {
                     val block = lines.joinToString("\n")
                     var widest = 0f
                     for (line in lines) widest = maxOf(widest, tp.measureText(line))
-                    val layoutWidth = (widest + 2f).toInt().coerceAtLeast(16)
                     val candidate = StaticLayout.Builder
-                        .obtain(block, 0, block.length, tp, layoutWidth)
+                        .obtain(block, 0, block.length, tp, (widest + 2f).toInt().coerceAtLeast(16))
                         .setAlignment(Layout.Alignment.ALIGN_CENTER)
                         .setLineSpacing(0f, LINE_SPACING)
                         .setIncludePad(false)
