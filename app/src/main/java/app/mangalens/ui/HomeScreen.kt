@@ -410,7 +410,7 @@ private fun EngineCard(settings: AppSettings, repo: SettingsRepository) {
                 Text(
                     "Entoure chaque bulle détectée et affiche : " +
                         "OCR (lignes lues) · bulles (détectées sur la page) · " +
-                        "regions (sent to translate) · cards (painted). " +
+                        "régions (envoyées en traduction) · cartes (affichées). " +
                         "If a balloon is untranslated, this says which step lost it.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
