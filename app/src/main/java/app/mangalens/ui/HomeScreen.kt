@@ -279,7 +279,7 @@ private fun EngineCard(settings: AppSettings, repo: SettingsRepository) {
             Text(
                 when (settings.engine) {
                     EngineKind.GOOGLE -> "Fonctionne immédiatement, sans configuration. Bonne qualité au quotidien."
-                    EngineKind.LLM -> "Feels like an official release: the AI reads whole pages (even the raw image) with story memory, a name glossary, natural tone and honorifics. A fast draft appears instantly; the AI polish replaces it seconds later. Needs an API key — Gemini's is free."
+                    EngineKind.LLM -> "L’IA lit les pages entières (y compris l’image) avec le contexte de l’histoire, un glossaire des noms, un ton naturel et les honorifiques. Une première traduction apparaît rapidement puis est améliorée. Une clé est nécessaire pour ce mode — celle de Gemini peut être gratuite."
                     EngineKind.MLKIT -> "100 % hors ligne après le téléchargement initial d'environ 30 Mo par langue. Qualité la plus simple des trois."
                 },
                 style = MaterialTheme.typography.bodySmall,
