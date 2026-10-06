@@ -392,7 +392,7 @@ internal object LlmHttp {
             val delta = o.optJSONObject("delta")
             if (delta != null && delta.optString("type") == "text_delta") delta.optString("text", "") else ""
         }
-        "error" -> throw RuntimeException(o.optJSONObject("error")?.optString("message") ?: "stream error")
+        "error" -> throw RuntimeException(o.optJSONObject("error")?.optString("message") ?: "erreur du flux de traduction")
         else -> ""
     }
 
