@@ -324,7 +324,7 @@ private fun EngineCard(settings: AppSettings, repo: SettingsRepository) {
                         val provider = settings.provider
                         scope.launch { repo.setModel(provider, it.trim()) }
                     },
-                    label = { Text("Model (blank = ${draftSettings.copy(model = "").effectiveModel()})") },
+                    label = { Text("Modèle (vide = ${draftSettings.copy(model = "").effectiveModel()})") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
