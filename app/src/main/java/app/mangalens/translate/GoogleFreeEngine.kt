@@ -108,7 +108,7 @@ class GoogleFreeEngine : TranslationEngine {
                 .build()
             LlmHttp.await(client.newCall(request)).use { resp ->
                 if (!resp.isSuccessful) throw RuntimeException("Google translate HTTP " + resp.code)
-                val body = resp.body?.string() ?: throw RuntimeException("empty translate response")
+                val body = resp.body?.string() ?: throw RuntimeException("réponse de traduction vide")
                 val rows = JSONArray(body).getJSONArray(0)
                 val out = ArrayList<Pair<String, String>>(rows.length())
                 for (i in 0 until rows.length()) {
