@@ -355,7 +355,7 @@ private fun EngineCard(settings: AppSettings, repo: SettingsRepository) {
                 Text("Vision IA — laisser l’IA lire directement l’image de la page", style = MaterialTheme.typography.bodyMedium)
                 Spacer(Modifier.height(6.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Chip("AI Vision (recommended)", settings.aiVision != AiVisionMode.OFF) {
+                    Chip("Vision IA (recommandé)", settings.aiVision != AiVisionMode.OFF) {
                         scope.launch { repo.setAiVision(AiVisionMode.AUTO) }
                     }
                     Chip("Text only", settings.aiVision == AiVisionMode.OFF) {
