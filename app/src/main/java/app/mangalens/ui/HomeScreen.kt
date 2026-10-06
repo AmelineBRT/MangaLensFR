@@ -305,7 +305,7 @@ private fun EngineCard(settings: AppSettings, repo: SettingsRepository) {
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     trailingIcon = {
                         Text(
-                            if (showKey) "hide" else "show",
+                            if (showKey) "masquer" else "afficher",
                             modifier = Modifier
                                 .clickable { showKey = !showKey }
                                 .padding(end = 10.dp),
