@@ -34,11 +34,11 @@ class MainActivity : ComponentActivity() {
                 ContextCompat.startForegroundService(this, intent)
                 Toast.makeText(
                     this,
-                    "MangaLens is on — switch to Brave and start reading",
+                    "MangaLens est activé — passez sur Brave et commencez à lire",
                     Toast.LENGTH_LONG
                 ).show()
             } else {
-                Toast.makeText(this, "Screen capture permission is required", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "L'autorisation de capture d'écran est nécessaire", Toast.LENGTH_LONG).show()
             }
         }
 
