@@ -284,28 +284,26 @@ class BubbleOverlayView(context: Context) : View(context) {
         val w = balloon.maskW
         val h = balloon.maskH
         val mask = balloon.mask
-        if (w < 3 || h < 3 || mask.size < w * h) return null
-        // An inpainted fill carries the balloon's own colours cell for
-        // cell; a flat one is white and tinted at draw time.
+        if (w < 1 || h < 1 || mask.size < w * h) return null
+
+        // BalloonFinder's mask is already the enclosed PAPER INTERIOR: the
+        // outline and the artwork outside the balloon are not part of it.
+        // The previous one-cell erosion deliberately left an unpainted ring
+        // inside the balloon, which is exactly where source lettering could
+        // remain visible on dense/stylized bubbles. Paint the complete mask.
         val colors = fill?.takeIf { it.width == w && it.height == h }?.let { f ->
             IntArray(w * h).also { f.getPixels(it, 0, w, 0, 0, w, h) }
         }
         val px = IntArray(w * h)
         var any = false
-        for (y in 1 until h - 1) {
-            var i = y * w + 1
-            for (x in 1 until w - 1) {
-                if (mask[i] && mask[i - 1] && mask[i + 1] && mask[i - w] && mask[i + w]) {
-                    px[i] = if (colors != null) colors[i] or (0xFF shl 24) else Color.WHITE
-                    any = true
-                }
-                i++
-            }
+        for (i in px.indices) {
+            if (!mask[i]) continue
+            px[i] = if (colors != null) colors[i] or (0xFF shl 24) else Color.WHITE
+            any = true
         }
         if (!any) return null
         return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
     }
-
     /**
      * Clean-and-typeset: fill through the mask, then set the translation the
      * way a letterer would — inside the balloon's actual shape. The mask is
@@ -504,8 +502,9 @@ class BubbleOverlayView(context: Context) : View(context) {
         val bg = if (sfx) {
             Color.argb(200, 24, 25, 40)
         } else {
-            val alpha = (255 * bgOpacity).toInt().coerceIn(235, 255)
-            Color.argb(alpha, Color.red(b.bgColor), Color.green(b.bgColor), Color.blue(b.bgColor))
+            // Cleaning cards must be fully opaque: any transparency leaves the original
+            // lettering visible underneath the French text.
+            Color.argb(255, Color.red(b.bgColor), Color.green(b.bgColor), Color.blue(b.bgColor))
         }
         val ink = if (sfx) Color.WHITE else readableText(bg, b.textColor)
 
