@@ -378,7 +378,7 @@ private fun EngineCard(settings: AppSettings, repo: SettingsRepository) {
                     Chip("Fast", settings.aiReasoning == AiReasoning.FAST) {
                         scope.launch { repo.setAiReasoning(AiReasoning.FAST) }
                     }
-                    Chip("Balanced", settings.aiReasoning == AiReasoning.BALANCED) {
+                    Chip("Équilibré", settings.aiReasoning == AiReasoning.BALANCED) {
                         scope.launch { repo.setAiReasoning(AiReasoning.BALANCED) }
                     }
                     Chip("Thorough", settings.aiReasoning == AiReasoning.THOROUGH) {
