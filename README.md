@@ -1,30 +1,30 @@
 # MangaLens 文A
 
-[![build](https://github.com/mkisontop/mangalens/actions/workflows/build.yml/badge.svg)](https://github.com/mkisontop/mangalens/actions/workflows/build.yml)
-[![release](https://img.shields.io/github/v/release/mkisontop/mangalens?label=release)](https://github.com/mkisontop/mangalens/releases/latest)
+[![build](https://github.com/AmelineBRT/MangaLensFR/actions/workflows/build.yml/badge.svg)](https://github.com/AmelineBRT/MangaLensFR/actions/workflows/build.yml)
+[![release](https://img.shields.io/github/v/release/AmelineBRT/MangaLensFR?label=release)](https://github.com/AmelineBRT/MangaLensFR/releases/latest)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**Live on-screen translation for raw manhwa, manga and manhua on Android.**
+**Traduction en direct à l’écran des manhwa, manga et manhua sur Android.**
 
 Read raws in Brave (or any app). MangaLens watches your screen, finds the speech
 bubbles, OCRs the Korean / Japanese / Chinese text on-device, translates it to
-natural English, and paints clean patches right over the bubbles — hands-free.
+natural French, and paints clean patches right over the bubbles — hands-free.
 Scroll and they vanish; stop and the next page translates itself.
 
-**[⤓ Download the latest APK](https://github.com/mkisontop/mangalens/releases/latest/download/MangaLens.apk)**
+**[⤓ Télécharger la dernière APK](https://github.com/AmelineBRT/MangaLensFR/releases/latest/download/MangaLens.apk)**
 · [website](https://mkisontop.github.io/MangaLens/)
-· [all releases](https://github.com/mkisontop/mangalens/releases)
+· [toutes les versions](https://github.com/AmelineBRT/MangaLensFR/releases)
 · [changelog](CHANGELOG.md)
 
-Current release: **0.10.1**. Still on 0.9.1? Follow the
+Current release: **0.10.2**. Still on 0.9.1? Follow the
 [one-time update instructions](#one-time-update-from-091) instead of using
 the normal APK.
 
 ## How it feels
 
-1. Tap **Start translating** → allow screen capture.
+1. Tap **Commencer la traduction** → allow screen capture.
 2. Switch to Brave and read your manhwa like normal.
-3. Every time you stop scrolling (~⅓ s), English appears **in** the bubbles —
+3. Every time you stop scrolling (~⅓ s), French appears **in** the bubbles —
    the balloon is wiped clean and re-lettered in a comic face, the way a
    scanlation typesets it.
 4. Scroll on — the overlays clear instantly so the page underneath is never
@@ -37,12 +37,12 @@ now, pause, peek at the original art, tap-to-translate mode, settings, stop).
 
 ## Install
 
-1. Download **[MangaLens.apk](https://github.com/mkisontop/mangalens/releases/latest/download/MangaLens.apk)**
+1. Download **[MangaLens.apk](https://github.com/AmelineBRT/MangaLensFR/releases/latest/download/MangaLens.apk)**
    — that link always serves the newest release. Every release ships a
    `checksums.txt` if you want to verify the download.
 2. Open it on your phone or tablet → allow installing from unknown sources
    (Android's standard prompt for apps outside the Play Store).
-3. Open MangaLens → grant "Display over other apps" → Start.
+3. Open MangaLens → grant "Afficher par-dessus les autres applications" → Start.
 
 Updating is automatic-ish: the app makes one anonymous check against this
 repository's latest release when you open it, and shows a small banner when a
@@ -56,7 +56,7 @@ correctly refuses to replace an installed app with one carrying an unrelated
 signature.
 
 - **Android 9 or newer, with 0.9.1 installed:** install
-  **[MangaLens-legacy-update.apk](https://github.com/mkisontop/mangalens/releases/latest/download/MangaLens-legacy-update.apk)**
+  **[MangaLens-legacy-update.apk](https://github.com/AmelineBRT/MangaLensFR/releases/latest/download/MangaLens-legacy-update.apk)**
   once. It carries Android's signed debug→release key lineage, updates in
   place without clearing MangaLens data, and moves the installation onto the
   private release key. Use the normal `MangaLens.apk` for every update after
@@ -115,7 +115,7 @@ Frame differ ──"screen went quiet"──▶ Page analysis, started ~150 ms a
                                     Translation engine (+ LRU cache, fallback chain,
                                      glossary + cast + story context; AI replies
                                      stream and paint balloon by balloon)
-                                                 │ English
+                                                 │ French
                                                  ▼
                                     Overlay renderer (balloons wiped through their
                                      own mask, text set to the balloon's shape)
@@ -215,7 +215,7 @@ Key details:
 - **Balloons are cleaned, not covered**: every detection carries its interior
   mask — the actual flooded shape, tails and curves included — and the card
   paints an opaque fill through it, sampled from the balloon's own paper, with
-  the English typeset over it in Comic Neue. The original lettering is gone,
+  the French typeset over it in Comic Neue. The original lettering is gone,
   not peeking around a floating patch. A gradient or textured balloon — the
   coloured fills manhwa uses — is not patched with a flat average: its own
   paper is continued under the lettering, cell by cell through the mask, so
@@ -248,7 +248,7 @@ Key details:
   backs it. No support, no card: a missing translation is recoverable, one
   painted in the wrong place is read as true.
 - **Raws that were already translated once still work**: aggregator sites
-  routinely serve Spanish or English uploads under a "raw" label. Those lines
+  routinely serve Spanish or French uploads under a "raw" label. Those lines
   carry no CJK, and used to be discarded at the OCR layer — leaving nothing
   to anchor to. Latin-script lines are now kept as regions with real
   geometry, Google is asked to auto-detect the source when a payload has no
@@ -419,7 +419,7 @@ not the normal download.
 
 ## FAQ
 
-**Overlays don't appear?** Check "Display over other apps" is granted, and that
+**Overlays don't appear?** Check "Afficher par-dessus les autres applications" is granted, and that
 you're not in a Brave *private* tab — private tabs set `FLAG_SECURE`, which
 makes the captured screen black.
 
@@ -433,14 +433,14 @@ the AI polish arrives whenever it arrives. Turn on **Data saver** to shrink
 vision uploads, or set AI Vision to **Text only** for requests a few KB big.
 
 **Which languages?** Korean, Japanese (incl. reasonable vertical text), Chinese
-(simplified & traditional) → English. Raws that were already translated once
-(Spanish and English uploads are common on aggregator sites) are handled too —
+(simplified & traditional) → French. Raws that were already translated once
+(Spanish and French uploads are common on aggregator sites) are handled too —
 the pipeline reads whatever is actually on the page.
 
 ## Respect the creators
 
 MangaLens is a reading accessibility tool for content you already have access
-to. When an official English release exists, buy it — translators and artists
+to. When an official French release exists, buy it — translators and artists
 eat too.
 
 ## License
