@@ -153,11 +153,19 @@ jobs:
           fi
 
           previous="$RUNNER_TEMP/previous-release.apk"
+          # The fork has no previous release on its first publication. In that
+          # case compare against the upstream stable APK; later releases use
+          # the latest MangaLensFR APK.
           if ! curl --fail --location --silent --show-error \
             "https://github.com/AmelineBRT/MangaLensFR/releases/latest/download/MangaLens.apk" \
             --output "$previous"; then
-            echo "::error::Could not download the previous stable APK to validate versionCode."
-            exit 1
+            echo "No previous MangaLensFR release found; checking against upstream stable APK."
+            if ! curl --fail --location --silent --show-error \
+              "https://github.com/mkisontop/mangalens/releases/latest/download/MangaLens.apk" \
+              --output "$previous"; then
+              echo "::error::Could not download a previous stable APK to validate versionCode."
+              exit 1
+            fi
           fi
           previous_code="$("$aapt" dump badging "$previous" | sed -n "s/.*versionCode='\([0-9][0-9]*\)'.*/\1/p" | head -n 1)"
           if [[ ! "$previous_code" =~ ^[0-9]+$ ]]; then
