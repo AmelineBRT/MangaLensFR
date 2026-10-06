@@ -323,7 +323,6 @@ class BubbleOverlayView(context: Context) : View(context) {
             for (x in 0 until w) {
                 val i = y * w + x
                 if (!mask[i]) continue
-                if (!mask[i]) continue
                 px[i] = if (colors != null) colors[i] or (0xFF shl 24) else Color.WHITE
                 any = true
             }
