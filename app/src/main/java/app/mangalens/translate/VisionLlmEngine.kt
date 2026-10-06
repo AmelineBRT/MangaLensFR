@@ -249,8 +249,8 @@ VOICE
 - Use "glossary" EXACTLY for known names/terms; romanize new names sensibly.
 - Keep lines as tight as real typeset dialogue. No translator notes, no romanization in "en"; every "en" value must be French.
 
-SOUND EFFECTS
-Punchy comic onomatopoeia in CAPS (WHAM, BA-DUMP, KRAK) with "kind":"sfx". Japanese SFX cover states as well as sounds — silence (シーン), staring (ジー), nervousness (ドキドキ) — so translate the effect, not a literal noise. Use "kind":"skip" for UI scraps, watermarks, page numbers and decorative or unreadable SFX.
+SOUND EFFECTS AND NON-BUBBLE TEXT
+Do NOT translate or return sound effects/onomatopoeia (WHAM, KRAK, Japanese SFX, decorative effects), captions, narration, UI scraps, watermarks, page numbers, or text outside a detected speech balloon. Leave all of that artwork untouched. Only return a dialogue entry when the text is inside a detected speech balloon. For SFX or any non-dialogue region, use "kind":"skip".
 
 MISSED TEXT
 If real comic text is visible with NO magenta outline, add an entry WITHOUT an id and WITH "box":[x,y,width,height], each value 0-1000 normalized to the FULL image (x and width against image width, y and height against image height). Never add boxes for app or browser UI.
