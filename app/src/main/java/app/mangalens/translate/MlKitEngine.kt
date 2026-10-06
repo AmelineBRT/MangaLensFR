@@ -19,7 +19,9 @@ class MlKitEngine : TranslationEngine {
     private val translators = HashMap<String, Translator>()
 
     override suspend fun translate(items: List<String>, lang: SourceLang): List<String> {
-        val effective = if (lang == SourceLang.AUTO) SourceLang.KO else lang
+        val effective = if (lang == SourceLang.AUTO) {
+            if (items.any { it.any { c -> app.mangalens.ocr.Script.isCjk(c) } }) SourceLang.KO else SourceLang.AUTO
+        } else lang
         val translator = translatorFor(effective)
         return items.map { translator.translate(it).await() }
     }
@@ -28,14 +30,15 @@ class MlKitEngine : TranslationEngine {
         val code = when (lang) {
             SourceLang.KO -> TranslateLanguage.KOREAN
             SourceLang.JA -> TranslateLanguage.JAPANESE
-            else -> TranslateLanguage.CHINESE
+            SourceLang.ZH -> TranslateLanguage.CHINESE
+            SourceLang.AUTO -> TranslateLanguage.ENGLISH
         }
         val translator = synchronized(translators) {
             translators.getOrPut(code) {
                 Translation.getClient(
                     TranslatorOptions.Builder()
                         .setSourceLanguage(code)
-                        .setTargetLanguage(TranslateLanguage.ENGLISH)
+                        .setTargetLanguage(TranslateLanguage.FRENCH)
                         .build()
                 )
             }
