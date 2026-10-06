@@ -392,7 +392,7 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
         }
         imageReader?.let { old ->
             val handler = captureHandler
-            if (handler != null && handler.looper.thread.isActif) {
+            if (handler != null && handler.looper.thread.isAlive) {
                 handler.post { runCatching { old.close() } }
             } else {
                 runCatching { old.close() }
@@ -613,7 +613,7 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
             slowRefAt = 0L
         }
         val handler = captureHandler
-        if (handler != null && handler.looper.thread.isActif &&
+        if (handler != null && handler.looper.thread.isAlive &&
             Thread.currentThread() !== handler.looper.thread
         ) {
             handler.post(action)
