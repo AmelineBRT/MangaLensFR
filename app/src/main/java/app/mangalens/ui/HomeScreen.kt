@@ -367,7 +367,7 @@ private fun EngineCard(settings: AppSettings, repo: SettingsRepository) {
                     if (settings.aiVision != AiVisionMode.OFF)
                         "L’IA lit directement l’image — elle peut repérer l’écriture manuscrite, les lettrages stylisés et ce que l’OCR ne détecte pas (~150–300 Ko par page, moins avec l’économie de données). En cas d’échec, passage automatique au texte seul puis à Google."
                     else
-                        "Only OCR'd text is sent (a few KB). Best for very slow internet; stylized lettering depends on on-device OCR.",
+                        "Seul le texte reconnu par l’OCR est envoyé (quelques Ko). Idéal avec une connexion très lente ; les lettrages stylisés dépendent de l’OCR de l’appareil.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
