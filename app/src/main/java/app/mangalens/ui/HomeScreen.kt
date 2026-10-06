@@ -397,7 +397,7 @@ private fun EngineCard(settings: AppSettings, repo: SettingsRepository) {
                 )
                 Spacer(Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Chip("Data saver — smaller page uploads", settings.dataSaver) {
+                    Chip("Économie de données — envoi d’images plus petites", settings.dataSaver) {
                         scope.launch { repo.setDataSaver(!settings.dataSaver) }
                     }
                 }
