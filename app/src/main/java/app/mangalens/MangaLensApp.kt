@@ -14,7 +14,7 @@ class MangaLensApp : Application() {
         super.onCreate()
         val nm = getSystemService(NotificationManager::class.java)
         nm.createNotificationChannel(
-            NotificationChannel(CHANNEL_ID, "Screen translation", NotificationManager.IMPORTANCE_LOW)
+            NotificationChannel(CHANNEL_ID, "Traduction de l’écran", NotificationManager.IMPORTANCE_LOW)
         )
     }
 }
