@@ -470,6 +470,7 @@ class TranslatePipeline(
                     balloon.box.contains(b.box.centerX(), b.box.centerY()) ||
                         containedShare(b.box, balloon.box) >= 0.70f
                 }
+        }
         )
 
     // ---- machine engines (Google / on-device), also the AI fast path ----
