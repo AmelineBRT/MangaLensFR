@@ -468,7 +468,7 @@ class TranslatePipeline(
             b.kind == BubbleKind.DIALOGUE &&
                 detected.any { balloon ->
                     balloon.box.contains(b.box.centerX(), b.box.centerY()) ||
-                        containedShare(b.box, balloon.box) >= 0.70f
+                        containedShare(b.box, balloon.box) >= 0.35f
                 }
         }
 
