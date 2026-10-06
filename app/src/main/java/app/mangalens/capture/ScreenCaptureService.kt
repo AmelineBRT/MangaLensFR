@@ -877,11 +877,12 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
                         state = State.SCANNING
                         return@run null
                     }
+                    val frame = fresh
 
                     setPill("traduction en cours…")
                     withContext(Dispatchers.Default) {
-                        shownThumb = FrameStability.grayThumbOf(fresh)
-                        pipeline.analyze(fresh, settings, exclusions)
+                        shownThumb = FrameStability.grayThumbOf(frame)
+                        pipeline.analyze(frame, settings, exclusions)
                     }
                 } ?: run {
                     state = State.SCANNING
