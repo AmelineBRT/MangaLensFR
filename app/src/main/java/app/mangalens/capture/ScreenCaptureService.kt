@@ -923,7 +923,7 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
                 // frame (when the grab got that far) and the mask over
                 // whatever draft cards are up are both already in place.
                 state = State.SHOWING
-                setPill("⚠ " + (e.message?.take(90) ?: "translation failed"), 4500)
+                setPill("⚠ " + (e.message?.take(90) ?: "échec de la traduction"), 4500)
             } finally {
                 // Cancellation is this loop's steady state — every scroll
                 // that interrupts a pass lands here — so the full-screen
@@ -1001,7 +1001,7 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
     override fun onToggleMode() {
         val next = if (settings.mode == CaptureMode.AUTO) CaptureMode.MANUAL else CaptureMode.AUTO
         scope.launch { settingsRepo.setMode(next) }
-        setPill(if (next == CaptureMode.AUTO) "auto-live mode" else "tap the button to translate", 2200)
+        setPill(if (next == CaptureMode.AUTO) "mode automatique" else "touchez le bouton pour traduire", 2200)
     }
 
     override fun onPeek() {
@@ -1055,12 +1055,12 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
         )
         return NotificationCompat.Builder(this, MangaLensApp.CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_bubble)
-            .setContentTitle("MangaLens is translating your screen")
-            .setContentText(if (paused) "Paused" else "Live — bubbles translate as you read")
+            .setContentTitle("MangaLens traduit votre écran")
+            .setContentText(if (paused) "En pause" else "En direct — les bulles sont traduites pendant la lecture")
             .setOngoing(true)
             .setContentIntent(open)
-            .addAction(0, if (paused) "Resume" else "Pause", serviceIntent(ACTION_TOGGLE_PAUSE, 2))
-            .addAction(0, "Stop", serviceIntent(ACTION_STOP, 1))
+            .addAction(0, if (paused) "Reprendre" else "Pause", serviceIntent(ACTION_TOGGLE_PAUSE, 2))
+            .addAction(0, "Arrêter", serviceIntent(ACTION_STOP, 1))
             .build()
     }
 
