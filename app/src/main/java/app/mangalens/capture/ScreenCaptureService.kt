@@ -846,6 +846,18 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
                         retireLater(prep.bitmap)
                     }
                 }
+                // A replay must be checked before OCR/translation. The old code
+                // only checked the replay cache when a prepared analysis already
+                // existed, so the normal path (no prepared frame) always missed it.
+                if (ahead == null && bmp == null) {
+                    val fresh = grabCleanBitmap()
+                    if (fresh == null) {
+                        state = State.SCANNING
+                        return@launch
+                    }
+                    bmp = fresh
+                }
+
                 if (ahead == null && auto && !translateOutsideBalloons && bmp != null) {
                     val currentThumb = FrameStability.grayThumbOf(bmp!!)
                     val replay = pageReplay.get(currentThumb, capW, capH)
@@ -861,18 +873,19 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
                 }
 
                 val analysis: TranslatePipeline.Analysis = ahead ?: run {
-                    val fresh = grabCleanBitmap()
-                    if (fresh == null) {
+                    val fresh = bmp ?: run {
                         state = State.SCANNING
-                        return@launch
+                        return@run null
                     }
-                    bmp = fresh
 
                     setPill("traduction en cours…")
                     withContext(Dispatchers.Default) {
                         shownThumb = FrameStability.grayThumbOf(fresh)
                         pipeline.analyze(fresh, settings, exclusions)
                     }
+                } ?: run {
+                    state = State.SCANNING
+                    return@launch
                 }
 
                 var draftShown: List<RenderBubble> = emptyList()
