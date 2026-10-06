@@ -101,7 +101,29 @@ class PageReplayCache(private val maxEntries: Int = 8) {
                 bestShift = s
             }
         }
-        if (bestShift == 0 || best >= zero * 0.62) return null
+        if (bestShift == 0 || best >= zero * 0.62) {
+            if (bestShift != 0) return null
+        }
+
+        // Row profiles alone are too easy to fool on mostly-white manga pages.
+        // Confirm the aligned pixels as well, after removing a global brightness
+        // offset caused by display dimming or capture exposure.
+        val baseMean = base.average()
+        val curMean = cur.average()
+        var pixelTotal = 0.0
+        var pixelCount = 0
+        for (y in 0 until n) {
+            val yy = y + bestShift
+            if (yy !in 0 until n) continue
+            for (x in 0 until n) {
+                val a0 = base[y * n + x] - baseMean
+                val b0 = cur[yy * n + x] - curMean
+                pixelTotal += kotlin.math.abs(a0 - b0)
+                pixelCount++
+            }
+        }
+        if (pixelCount < n * n * 0.65) return null
+        if (pixelTotal / pixelCount > 11.0) return null
         return bestShift
     }
 }
