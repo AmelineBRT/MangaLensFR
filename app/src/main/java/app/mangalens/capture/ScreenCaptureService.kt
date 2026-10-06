@@ -58,7 +58,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * Foreground service that owns the MediaProjection capture and drives the live
+ * Foreground service that owns the MediaProjection capture and drives the actif
  * translation loop:
  *
  *   SCANNING --(screen stable)--> TRANSLATING --(done)--> SHOWING
@@ -118,7 +118,7 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
         private const val EARLY_ANALYSIS_MS = 150L
 
         /**
-         * How far (thumb mean difference) the live frame may have drifted
+         * How far (thumb mean difference) the actif frame may have drifted
          * from the frame read ahead before that reading is thrown away.
          * Identical frames differ by capture noise only, well under one.
          */
@@ -267,7 +267,7 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
     @Volatile private var lastFrameAt = 0L
     @Volatile private var suppressUntil = 0L
     @Volatile private var state = State.SCANNING
-    @Volatile private var paused = false
+    @Volatile private var en pause = false
 
     private var translateJob: Job? = null
     private var lastShown: List<RenderBubble> = emptyList()
@@ -349,7 +349,7 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
         refreshOverlayMask()
         running.value = true
         startTicker()
-        setPill("MangaLens is live — open your manhwa", 2600)
+        setPill("MangaLens est actif — ouvrez votre manhwa", 2600)
     }
 
     private fun displaySize(): Triple<Int, Int, Int> {
@@ -392,7 +392,7 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
         }
         imageReader?.let { old ->
             val handler = captureHandler
-            if (handler != null && handler.looper.thread.isAlive) {
+            if (handler != null && handler.looper.thread.isAactif) {
                 handler.post { runCatching { old.close() } }
             } else {
                 runCatching { old.close() }
@@ -613,7 +613,7 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
             slowRefAt = 0L
         }
         val handler = captureHandler
-        if (handler != null && handler.looper.thread.isAlive &&
+        if (handler != null && handler.looper.thread.isAactif &&
             Thread.currentThread() !== handler.looper.thread
         ) {
             handler.post(action)
@@ -718,7 +718,7 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
         scope.launch {
             while (isActive) {
                 delay(60)
-                if (paused || settings.mode == CaptureMode.MANUAL) continue
+                if (en pause || settings.mode == CaptureMode.MANUAL) continue
                 if (projection == null || state != State.SCANNING) continue
                 val now = SystemClock.uptimeMillis()
                 if (lastFrameAt <= 0 || now < suppressUntil) continue
@@ -763,15 +763,15 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
     /**
      * Whether the frame read ahead is still what the screen shows, judged
      * over the cells our own overlays do not cover — the pill saying
-     * "translating…" is up by now, and must not count. Drift is measured
+     * "traduction en cours…" is up by now, and must not count. Drift is measured
      * two ways, as a page change is: by how far the cells moved on average,
      * which a scroll makes obvious, and by how many moved at all, which a
      * tap-to-turn between two mostly-white pages does and the average hides.
      */
-    private fun stillOnScreen(read: IntArray, live: IntArray?): Boolean {
+    private fun stillOnScreen(read: IntArray, actif: IntArray?): Boolean {
         val mask = overlayMask
-        return FrameStability.meanDiff(read, live, mask) <= PREPARED_MAX_DRIFT &&
-            FrameStability.changedFraction(read, live, mask) <= PAGE_CHANGE_FRACTION
+        return FrameStability.meanDiff(read, actif, mask) <= PREPARED_MAX_DRIFT &&
+            FrameStability.changedFraction(read, actif, mask) <= PAGE_CHANGE_FRACTION
     }
 
     /** Hands over the frame read ahead, or null when there is none. Main thread only. */
@@ -827,7 +827,7 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
                 var ahead: TranslatePipeline.Analysis? = null
                 val prep = takePrepared()
                 if (prep != null) {
-                    setPill("translating…")
+                    setPill("traduction en cours…")
                     val read = try {
                         prep.job.await()
                     } catch (e: CancellationException) {
@@ -852,7 +852,7 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
                         return@launch
                     }
                     bmp = fresh
-                    setPill("translating…")
+                    setPill("traduction en cours…")
                     withContext(Dispatchers.Default) {
                         shownThumb = FrameStability.grayThumbOf(fresh)
                         pipeline.analyze(fresh, settings, exclusions)
@@ -870,7 +870,7 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
                                 lastShown = partial.bubbles
                                 suppressUntil = SystemClock.uptimeMillis() + 600
                                 paintCards(partial.bubbles)
-                                setPill("✓ ${partial.bubbles.size} · ${partial.engineLabel} · ✨ upgrading…")
+                                setPill("✓ ${partial.bubbles.size} · ${partial.engineLabel} · ✨ amélioration…")
                             }
                         }
                     }
@@ -884,7 +884,7 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
                 suppressUntil = SystemClock.uptimeMillis() + 500
                 paintCards(shown)
                 state = State.SHOWING
-                // A page with dialogue keeps the current work alive and feeds it
+                // A page with dialogue keeps the current work aactif and feeds it
                 // the names that identify it; a run of pages without any means
                 // the reader has left the story — an index, a cover, a menu.
                 if (shown.isNotEmpty()) {
@@ -908,7 +908,7 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
                 if (result.diag != null) {
                     setPill("${result.engineLabel.ifBlank { "—" }} · ${result.diag} · ${works.describe()}")
                 } else if (shown.isEmpty()) {
-                    setPill(if (auto) null else "no text found", 1800)
+                    setPill(if (auto) null else "aucun texte trouvé", 1800)
                 } else {
                     val mark = if (result.polished && result.bubbles.isNotEmpty()) "✨" else "✓"
                     val kept = if (shown.size > result.bubbles.size) " · draft kept" else ""
@@ -979,22 +979,22 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
         // dialogue — cover switching series the usual way. This is for going
         // straight from one work to the next with neither.
         works.startNewWork()
-        setPill("new series · names cleared", 2000)
+        setPill("nouvelle série · noms mémorisés effacés", 2000)
     }
 
     override fun onTogglePause() {
-        paused = !paused
-        if (paused) {
+        en pause = !en pause
+        if (en pause) {
             translateJob?.cancel()
             discardPrepared()
             state = State.SCANNING
             shownThumb = null
             clearCards()
-            setPill("paused", 1600)
+            setPill("en pause", 1600)
         } else {
-            setPill("live", 1200)
+            setPill("actif", 1200)
         }
-        controller?.setPaused(paused)
+        controller?.setPaused(en pause)
         updateNotification()
     }
 
@@ -1035,7 +1035,7 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
         stopSelf()
     }
 
-    override fun isPaused() = paused
+    override fun isPaused() = en pause
 
     override fun isAutoMode() = settings.mode == CaptureMode.AUTO
 
@@ -1056,10 +1056,10 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
         return NotificationCompat.Builder(this, MangaLensApp.CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_bubble)
             .setContentTitle("MangaLens traduit votre écran")
-            .setContentText(if (paused) "En pause" else "En direct — les bulles sont traduites pendant la lecture")
+            .setContentText(if (en pause) "En pause" else "En direct — les bulles sont traduites pendant la lecture")
             .setOngoing(true)
             .setContentIntent(open)
-            .addAction(0, if (paused) "Reprendre" else "Pause", serviceIntent(ACTION_TOGGLE_PAUSE, 2))
+            .addAction(0, if (en pause) "Reprendre" else "Pause", serviceIntent(ACTION_TOGGLE_PAUSE, 2))
             .addAction(0, "Arrêter", serviceIntent(ACTION_STOP, 1))
             .build()
     }
