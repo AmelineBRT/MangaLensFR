@@ -71,7 +71,7 @@ class VisionLlmEngine(
                 SourceLang.KO -> "Korean"
                 SourceLang.JA -> "Japanese"
                 SourceLang.ZH -> "Chinese"
-                SourceLang.AUTO -> "Korean, Japanese or Chinese"
+                SourceLang.AUTO -> "English, Korean, Japanese or Chinese"
             }
             // The AI reads and translates; on-device OCR owns the geometry.
             // Each detected region is an anchor the model answers by id, so
@@ -231,7 +231,7 @@ Every region is outlined in magenta and labelled with its region id on a magenta
 The regions listed in "closeups" are also attached after the page as enlarged close-up images, each carrying its region id on the same magenta badge. Read those regions from their close-up, which is sharper than the page, and still answer them by id — a close-up is never a new region.
 An outline usually marks a whole speech balloon. Everything inside it is ONE character's line, however many columns or lines it is set in — read the columns in order (vertical text runs top-to-bottom, columns right-to-left) and translate the balloon as a single utterance. Do not translate a column or a fragment as if it were a sentence on its own.
 "ocr_text_maybe_garbled" is empty when on-device OCR could not read the region at all. That is normal on vertical and hand-lettered text and does NOT mean the region is empty — read it from the image. Answer with "kind":"skip" only if there is genuinely no readable text there.
-"expected_source_language" is a guess from settings. Aggregator sites often serve raws already translated once — Spanish is common — so if the page's lettering is actually some other language, read that language and translate it into the same natural English. If a region's lettering is already English, answer it with "kind":"skip".
+"expected_source_language" is a guess from settings. Aggregator sites often serve raws already translated once — Spanish is common — so if the page's lettering is actually some other language, read that language and translate it into the same natural French. If a region's lettering is already French, answer it with "kind":"skip".
 Answer EVERY region. A region you leave out is left untranslated on the page.
 
 WHO IS SPEAKING — decide this before you translate
