@@ -77,7 +77,7 @@ class MainActivity : ComponentActivity() {
     private fun openOverlaySettings() {
         Toast.makeText(
             this,
-            "Allow \"Display over other apps\" for MangaLens, then come back",
+            "Autorisez \"Afficher par-dessus les autres applications\" pour MangaLens, puis revenez ici",
             Toast.LENGTH_LONG
         ).show()
         startActivity(
