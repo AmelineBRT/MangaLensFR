@@ -95,10 +95,10 @@ class TranslatePipeline(
         const val VISION_CACHE_VERSION = 2
 
         /** Balloons OCR read nothing in that get a second, enlarged look. */
-        const val MAX_REREAD = 6
+        const val MAX_REREAD = 4
 
         /** Short side, in pixels, a re-read crop is enlarged toward. */
-        const val REREAD_SHORT_SIDE = 320f
+        const val REREAD_SHORT_SIDE = 280f
     }
 
     suspend fun process(
