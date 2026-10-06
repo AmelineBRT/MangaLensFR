@@ -295,6 +295,7 @@ class TranslatePipeline(
         val raw = dispatch(
             bitmap, settings, analysis.exclusions, wrapped,
             ocrResult, bubbles, detected, analysis.anchorLines, analysis.ignoreTop, analysis.ignoreBottom, useVision,
+            translateOutsideBalloons,
         )
         val result = raw.copy(bubbles = soleClaimants(raw.bubbles))
         return if (diag == null) result else result.copy(
@@ -317,6 +318,7 @@ class TranslatePipeline(
         ignoreTop: Int,
         ignoreBottom: Int,
         useVision: Boolean,
+        translateOutsideBalloons: Boolean,
     ): PageResult {
         val balloons = detected.map { it.box }
         val targetBubbles = if (translateOutsideBalloons) {
@@ -943,6 +945,4 @@ class TranslatePipeline(
         // Most bubbles are white; snap near-white samples to pure white for a clean look.
         return if (luminance(avg) > 190) Color.WHITE else avg
     }
-}
-
 }
