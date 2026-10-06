@@ -117,8 +117,10 @@ class BubbleOverlayView(context: Context) : View(context) {
             // has an immediate visible effect.
             if (source.isNotEmpty()) {
                 post {
-                    placed = placeAll(source)
-                    invalidate()
+                    if (source.isNotEmpty()) {
+                        placed = placeAll(source)
+                        invalidate()
+                    }
                 }
             } else {
                 invalidate()
@@ -308,9 +310,10 @@ class BubbleOverlayView(context: Context) : View(context) {
         val mask = balloon.mask
         if (w < 1 || h < 1 || mask.size < w * h) return null
 
-        // Preserve a one-cell safety ring so the balloon's original outline
-        // is not painted over. The detected source lettering sits inside the
-        // balloon; this ring is only the outline-preservation margin.
+        // The translation background must be a true replacement: no source
+        // lettering is allowed to remain visible through it. BalloonFinder's
+        // mask already stops at the detected balloon boundary, so every mask
+        // cell is safe to fill opaquely.
         val colors = fill?.takeIf { it.width == w && it.height == h }?.let { f ->
             IntArray(w * h).also { f.getPixels(it, 0, w, 0, 0, w, h) }
         }
@@ -320,9 +323,7 @@ class BubbleOverlayView(context: Context) : View(context) {
             for (x in 0 until w) {
                 val i = y * w + x
                 if (!mask[i]) continue
-                val interior = x > 0 && x + 1 < w && y > 0 && y + 1 < h &&
-                    mask[i - 1] && mask[i + 1] && mask[i - w] && mask[i + w]
-                if (!interior) continue
+                if (!mask[i]) continue
                 px[i] = if (colors != null) colors[i] or (0xFF shl 24) else Color.WHITE
                 any = true
             }
@@ -351,8 +352,8 @@ class BubbleOverlayView(context: Context) : View(context) {
             color = readableText(b.bgColor, b.textColor)
             typeface = if (sfx) sfxFace else dialogueFace
         }
-        val startSize = (box.height() * 0.24f / resources.displayMetrics.density)
-            .coerceIn(15f, 34f) * textScale
+        val startSize = (box.height() * 0.18f / resources.displayMetrics.density)
+            .coerceIn(10f, 32f) * textScale
 
         var layout: StaticLayout? = null
         var textX = 0f
