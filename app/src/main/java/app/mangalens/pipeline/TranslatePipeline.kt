@@ -944,3 +944,5 @@ class TranslatePipeline(
         return if (luminance(avg) > 190) Color.WHITE else avg
     }
 }
+
+}
