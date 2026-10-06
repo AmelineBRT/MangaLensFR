@@ -82,7 +82,7 @@ class BubbleOverlayView(context: Context) : View(context) {
 
     private companion object {
         /** Smallest type, in dp, the balloon text shrinks to. */
-        const val MIN_TYPE_SIZE = 9f
+        const val MIN_TYPE_SIZE = 7f
         const val LINE_SPACING = 1.06f
 
         /** Share of a row's interior a line may use; the rest is the margin a letterer keeps. */
@@ -107,8 +107,30 @@ class BubbleOverlayView(context: Context) : View(context) {
      */
     private var source: List<RenderBubble> = emptyList()
 
-    @Volatile var textScale = 1f
-    @Volatile var bgOpacity = 1f
+    @Volatile
+    var textScale: Float = 1f
+        set(value) {
+            val v = value.coerceIn(0.5f, 2f)
+            field = v
+            // The setting used to be applied only to the next translated page.
+            // Re-layout the bubbles already on screen so the Reading slider
+            // has an immediate visible effect.
+            if (source.isNotEmpty()) {
+                post {
+                    placed = placeAll(source)
+                    invalidate()
+                }
+            } else {
+                invalidate()
+            }
+        }
+
+    @Volatile
+    var bgOpacity: Float = 1f
+        set(value) {
+            field = value.coerceIn(0f, 1f)
+            invalidate()
+        }
 
     /**
      * Comic Neue is the lettering hand; the platform faces stand in when the
@@ -348,7 +370,7 @@ class BubbleOverlayView(context: Context) : View(context) {
                     var widest = 0f
                     for (line in lines) widest = maxOf(widest, tp.measureText(line))
                     val candidate = StaticLayout.Builder
-                        .obtain(block, 0, block.length, tp, (widest + 2f).toInt().coerceAtLeast(16))
+                        .obtain(block, 0, block.length, tp, maxTextW.toInt().coerceAtLeast(16))
                         .setAlignment(Layout.Alignment.ALIGN_CENTER)
                         .setLineSpacing(0f, LINE_SPACING)
                         .setIncludePad(false)
