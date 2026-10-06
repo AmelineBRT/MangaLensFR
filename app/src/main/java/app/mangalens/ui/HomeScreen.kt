@@ -739,12 +739,12 @@ private fun TipsCard() {
             SectionTitle("À savoir")
             Spacer(Modifier.height(8.dp))
             Text(
-                "• Brave private tabs block screen capture (they render black). Use a normal tab.\n" +
-                    "• Overlays never block touches — scroll right through them.\n" +
-                    "• Scrolling instantly hides overlays; stopping re-translates. That's the live loop.\n" +
-                    "• AI Pro shows a fast draft instantly, then the AI polish replaces it — slow internet never blocks reading.\n" +
-                    "• Text mode sends only bubble text; AI Vision sends the page image — only ever to the provider you chose.\n" +
-                    "• Names stay consistent: the AI keeps a glossary of characters and terms as you read.\n" +
+                "• Les onglets privés de Brave bloquent la capture d’écran (ils apparaissent noirs). Utilisez un onglet normal.\n" +
+                    "• Les superpositions ne bloquent jamais les touches : faites défiler normalement.\n" +
+                    "• Faire défiler masque immédiatement les superpositions ; lorsque vous vous arrêtez, la page est retraduite. C’est le fonctionnement du mode en direct.\n" +
+                    "• L’IA Pro affiche immédiatement une première traduction rapide, puis la remplace par une version améliorée : une connexion lente ne bloque pas la lecture.\n" +
+                    "• Le mode texte envoie uniquement le texte des bulles ; Vision IA envoie l’image de la page, uniquement au fournisseur que vous avez choisi.\n" +
+                    "• Les noms restent cohérents : l’IA conserve un glossaire des personnages et des termes au fil de votre lecture.\n" +
                     "• Vous aimez lire des raws ? Soutenez la sortie officielle lorsqu’elle existe.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
