@@ -352,7 +352,7 @@ private fun EngineCard(settings: AppSettings, repo: SettingsRepository) {
                     )
                 }
                 Spacer(Modifier.height(12.dp))
-                Text("AI Vision — let the AI read the raw page image", style = MaterialTheme.typography.bodyMedium)
+                Text("Vision IA — laisser l’IA lire directement l’image de la page", style = MaterialTheme.typography.bodyMedium)
                 Spacer(Modifier.height(6.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Chip("AI Vision (recommended)", settings.aiVision != AiVisionMode.OFF) {
