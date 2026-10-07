@@ -987,7 +987,19 @@ class TranslatePipeline(
                 if (!boundary) continue
                 val sx = (box.left + ((x * 2 + 1) * box.width()) / (2 * w)).coerceIn(0, bitmap.width - 1)
                 val sy = (box.top + ((y * 2 + 1) * box.height()) / (2 * h)).coerceIn(0, bitmap.height - 1)
-                out[i] = bitmap.getPixel(sx, sy) or (0xFF shl 24)
+                var darkest = bitmap.getPixel(sx, sy)
+                 var darkLum = luminance(darkest)
+                 for (dy in -1..1) for (dx in -1..1) {
+                     val nx = (sx + dx).coerceIn(0, bitmap.width - 1)
+                     val ny = (sy + dy).coerceIn(0, bitmap.height - 1)
+                     val q = bitmap.getPixel(nx, ny)
+                     val qLum = luminance(q)
+                     if (qLum < darkLum) {
+                         darkest = q
+                         darkLum = qLum
+                     }
+                 }
+                 out[i] = darkest or (0xFF shl 24)
             }
         }
         return Bitmap.createBitmap(out, w, h, Bitmap.Config.ARGB_8888)
