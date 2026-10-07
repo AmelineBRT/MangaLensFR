@@ -256,7 +256,7 @@ class BubbleOverlayView(context: Context) : View(context) {
         if (b.translated.isBlank()) return null
         val balloon = b.balloon
         if (balloon != null) {
-            val stamp = erodedStamp(balloon, b.fill, context, b.bgColor)
+            val stamp = erodedStamp(balloon, b.fill)
             if (stamp != null) return placeClean(b, balloon, stamp, b.fill != null)
         }
         return placeCard(b, occupied)
@@ -290,7 +290,7 @@ class BubbleOverlayView(context: Context) : View(context) {
      * cleaned balloon. Null when nothing survives (a sliver of a mask); that
      * bubble falls back to the rounded card instead of stamping nothing.
      */
-    private fun erodedStamp(balloon: Balloon, fill: Bitmap?, context: Context, bgColor: Int): Bitmap? {
+    private fun erodedStamp(balloon: Balloon, fill: Bitmap?): Bitmap? {
         val w = balloon.maskW
         val h = balloon.maskH
         val mask = balloon.mask
