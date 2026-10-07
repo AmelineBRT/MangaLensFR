@@ -105,7 +105,7 @@ class BubbleOverlayView(context: Context) : View(context) {
      * multi-window or letterboxed reader that is wider than the view, and a
      * card against the right edge is clipped.
      */
-    private var source: List<RenderBubble> = emptyList()
+    private var source: List<RenderBubble> = emptyList()\n    private var currentSourceBitmap: Bitmap? = null
 
     @Volatile var textScale = 1f
         set(value) {
@@ -257,7 +257,7 @@ class BubbleOverlayView(context: Context) : View(context) {
         if (b.translated.isBlank()) return null
         val balloon = b.balloon
         if (balloon != null) {
-            val stamp = erodedStamp(balloon, b.fill)
+            val stamp = erodedStamp(balloon, b.fill, context, b.bgColor)
             if (stamp != null) return placeClean(b, balloon, stamp, b.fill != null)
         }
         return placeCard(b, occupied)
@@ -291,31 +291,51 @@ class BubbleOverlayView(context: Context) : View(context) {
      * cleaned balloon. Null when nothing survives (a sliver of a mask); that
      * bubble falls back to the rounded card instead of stamping nothing.
      */
-    private fun erodedStamp(balloon: Balloon, fill: Bitmap?): Bitmap? {
+    private fun erodedStamp(balloon: Balloon, fill: Bitmap?, context: Context, bgColor: Int): Bitmap? {
         val w = balloon.maskW
         val h = balloon.maskH
         val mask = balloon.mask
-        if (w < 3 || h < 3 || mask.size < w * h) return null
-        // An inpainted fill carries the balloon's own colours cell for
-        // cell; a flat one is white and tinted at draw time.
+        if (w < 1 || h < 1 || mask.size < w * h) return null
+
         val colors = fill?.takeIf { it.width == w && it.height == h }?.let { f ->
             IntArray(w * h).also { f.getPixels(it, 0, w, 0, 0, w, h) }
         }
         val px = IntArray(w * h)
+        val page = context.resources // only used to keep this helper tied to the overlay's display context
+        val source = currentSourceBitmap
         var any = false
-        // BalloonFinder's mask is the enclosed paper interior. Paint the
-        // complete mask: leaving an eroded ring is precisely where original
-        // lettering can survive. The mask itself stops at the balloon outline,
-        // so the outline remains untouched without sacrificing opacity.
-        for (i in px.indices) {
-            if (!mask[i]) continue
-            px[i] = if (colors != null) colors[i] or (0xFF shl 24) else Color.WHITE
-            any = true
+
+        for (y in 0 until h) {
+            for (x in 0 until w) {
+                val i = y * w + x
+                if (!mask[i]) continue
+
+                // The complete interior is opaque. At the mask boundary we
+                // copy only a genuinely contrasting source pixel, preserving
+                // the original balloon outline instead of leaving a transparent
+                // ring where source lettering could survive.
+                val boundary = x == 0 || y == 0 || x == w - 1 || y == h - 1 ||
+                    !mask[i - 1] || !mask[i + 1] || !mask[i - w] || !mask[i + w]
+                if (boundary && source != null) {
+                    val sx = (balloon.box.left + ((x * 2 + 1) * balloon.box.width()) / (2 * w))
+                        .coerceIn(0, source.width - 1)
+                    val sy = (balloon.box.top + ((y * 2 + 1) * balloon.box.height()) / (2 * h))
+                        .coerceIn(0, source.height - 1)
+                    val sp = source.getPixel(sx, sy)
+                    val lum = (Color.red(sp) * 299 + Color.green(sp) * 587 + Color.blue(sp) * 114) / 1000
+                    val bgLum = (Color.red(bgColor) * 299 + Color.green(bgColor) * 587 + Color.blue(bgColor) * 114) / 1000
+                    val outline = if (balloon.inverted) lum > bgLum + 45 else lum < bgLum - 45
+                    px[i] = if (outline) sp or (0xFF shl 24)
+                    else if (colors != null) colors[i] or (0xFF shl 24) else Color.WHITE
+                } else {
+                    px[i] = if (colors != null) colors[i] or (0xFF shl 24) else Color.WHITE
+                }
+                any = true
+            }
         }
         if (!any) return null
         return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
     }
-
     /**
      * Clean-and-typeset: fill through the mask, then set the translation the
      * way a letterer would — inside the balloon's actual shape. The mask is
