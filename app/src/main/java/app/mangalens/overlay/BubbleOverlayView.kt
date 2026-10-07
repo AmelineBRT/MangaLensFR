@@ -105,7 +105,7 @@ class BubbleOverlayView(context: Context) : View(context) {
      * multi-window or letterboxed reader that is wider than the view, and a
      * card against the right edge is clipped.
      */
-    private var source: List<RenderBubble> = emptyList()\n    
+    private var source: List<RenderBubble> = emptyList()
     @Volatile var textScale = 1f
         set(value) {
             field = value.coerceIn(0.5f, 2f)
