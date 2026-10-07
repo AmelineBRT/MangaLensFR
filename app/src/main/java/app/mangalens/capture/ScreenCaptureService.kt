@@ -828,6 +828,25 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
                 var ahead: TranslatePipeline.Analysis? = null
                 val prep = takePrepared()
                 if (prep != null) {
+                    // The preparation job may already be running OCR, but the
+                    // thumbnail is cheap. Check replay BEFORE awaiting that job:
+                    // otherwise scroll-back pages lose the whole benefit of the
+                    // cache because preparation has already committed us to OCR.
+                    if (!translateOutsideBalloons) {
+                        val preparedThumb = FrameStability.grayThumbOf(prep.bitmap)
+                        val replay = pageReplay.get(preparedThumb, capW, capH)
+                        if (replay != null && replay.isNotEmpty()) {
+                            prep.job.cancel()
+                            retireLater(prep.bitmap)
+                            shownThumb = preparedThumb
+                            lastShown = replay
+                            paintCards(replay)
+                            state = State.SHOWING
+                            setPill("↩ ${replay.size} · déjà traduit", 1400)
+                            works.noteTranslated(System.currentTimeMillis(), glossary.snapshot().keys)
+                            return@launch
+                        }
+                    }
                     setPill("traduction en cours…")
                     val read = try {
                         prep.job.await()
