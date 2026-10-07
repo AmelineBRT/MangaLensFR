@@ -88,15 +88,36 @@ class ScanlationRenderTest {
     private fun view(): BubbleOverlayView =
         BubbleOverlayView(RuntimeEnvironment.getApplication()).apply { layout(0, 0, pageW, pageH) }
 
-    private fun bubble(text: String) = RenderBubble(
-        box = Rect(box),
-        translated = text,
-        original = "元のセリフ",
-        bgColor = Color.WHITE,
-        textColor = 0xFF17181C.toInt(),
-        vertical = true,
-        balloon = ellipseBalloon(),
-    )
+    private fun bubble(text: String): RenderBubble {
+        val balloon = ellipseBalloon()
+        val src = page()
+        val outline = Bitmap.createBitmap(balloon.maskW, balloon.maskH, Bitmap.Config.ARGB_8888)
+        val opx = IntArray(balloon.maskW * balloon.maskH)
+        for (y in 0 until balloon.maskH) {
+            for (x in 0 until balloon.maskW) {
+                val i = y * balloon.maskW + x
+                if (!balloon.mask[i]) continue
+                val boundary = x == 0 || y == 0 || x == balloon.maskW - 1 || y == balloon.maskH - 1 ||
+                    !balloon.mask[i - 1] || !balloon.mask[i + 1] ||
+                    !balloon.mask[i - balloon.maskW] || !balloon.mask[i + balloon.maskW]
+                if (!boundary) continue
+                val sx = box.left + ((x * 2 + 1) * box.width()) / (2 * balloon.maskW)
+                val sy = box.top + ((y * 2 + 1) * box.height()) / (2 * balloon.maskH)
+                opx[i] = src.getPixel(sx.coerceIn(0, pageW - 1), sy.coerceIn(0, pageH - 1))
+            }
+        }
+        outline.setPixels(opx, 0, balloon.maskW, 0, 0, balloon.maskW, balloon.maskH)
+        return RenderBubble(
+            box = Rect(box),
+            translated = text,
+            original = "元のセリフ",
+            bgColor = Color.WHITE,
+            textColor = 0xFF17181C.toInt(),
+            vertical = true,
+            balloon = balloon,
+            outline = outline,
+        )
+    }
 
     private fun luminance(c: Int) =
         (Color.red(c) * 299 + Color.green(c) * 587 + Color.blue(c) * 114) / 1000
