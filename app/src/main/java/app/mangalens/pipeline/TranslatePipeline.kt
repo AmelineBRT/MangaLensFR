@@ -422,7 +422,7 @@ class TranslatePipeline(
                         // the dialogue regions we know exist. Otherwise fall
                         // back to the text path, which renders AI text on
                         // exact OCR geometry.
-                        val dialogueIds = targetBubbles.indices
+                        val dialogueIds = targetBubbles.indices.toList()
                         val covered = pageBubbles.count { it.id in dialogueIds }
                         val goodCoverage = dialogueIds.isEmpty() || covered * 2 >= dialogueIds.size
                         if (pageBubbles.isNotEmpty() && goodCoverage) {
@@ -700,7 +700,7 @@ class TranslatePipeline(
     private fun visionKey(ns: String, lang: SourceLang, bubbles: List<Bubble>, bitmap: Bitmap): String =
         TranslationCache.key(
             ns, lang.name,
-            PageKey.of(targetBubbles.map { b -> PageKey.token(b.text) { PageKey.regionHash(bitmap, b.box) } }),
+            PageKey.of(bubbles.map { b -> PageKey.token(b.text) { PageKey.regionHash(bitmap, b.box) } }),
         )
 
     private fun normalized(box: Rect, w: Int, h: Int) = Rect(
