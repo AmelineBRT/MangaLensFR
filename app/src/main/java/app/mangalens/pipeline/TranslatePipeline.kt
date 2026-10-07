@@ -122,10 +122,11 @@ class TranslatePipeline(
         val ignoreTop = (bitmap.height * settings.ignoreTopPct).toInt()
         val ignoreBottom = (bitmap.height * settings.ignoreBottomPct).toInt()
 
-        // Anchored vision is the quality path for every script — manhwa's
-        // stylized/handwritten lettering needs it as much as vertical
-        // Japanese does, and it degrades to the text path automatically.
-        val useVision = settings.engine == EngineKind.LLM && settings.aiVision != AiVisionMode.OFF
+        // Vision is expensive because it uploads the page image. Do not send
+        // every page through the image model: use it when OCR coverage is
+        // actually weak, and keep the normal path text-only when OCR has read
+        // the balloons well enough. This is the main latency guard.
+        var useVision = false
 
         // Balloons come from the page pixels, so a region exists because the
         // page shows one — not because OCR happened to read something in it.
@@ -145,6 +146,23 @@ class TranslatePipeline(
         val rereads = reread(bitmap, scan.balloons, firstPass, settings)
         val lines = if (rereads.isEmpty()) firstPass.lines else firstPass.lines + rereads
         val ocrResult = OcrEngine.Result(lines, firstPass.lang)
+
+        // Use Vision only when it has a concrete job to do: an unread
+        // detected balloon or very poor OCR coverage. On a normal page this
+        // avoids uploading a 150–300 KB screenshot and waiting for a second
+        // image-model pass after the fast text translation.
+        if (settings.engine == EngineKind.LLM && settings.aiVision != AiVisionMode.OFF) {
+            val unreadBalloons = scan.balloons.count { b ->
+                lines.none { l ->
+                    Script.clean(l.text).length >= 2 &&
+                        b.box.contains(l.box.centerX(), l.box.centerY())
+                }
+            }
+            val readableLines = lines.count { Script.clean(it.text).length >= 2 }
+            val detectedCount = scan.balloons.size
+            useVision = unreadBalloons > 0 ||
+                (detectedCount >= 2 && readableLines.toFloat() / detectedCount < 0.75f)
+        }
 
         // A balloon the frame edge cuts through is only trusted where OCR
         // actually read lettering inside it: the visible part of a panel
@@ -321,14 +339,13 @@ class TranslatePipeline(
         translateOutsideBalloons: Boolean,
     ): PageResult {
         val balloons = detected.map { it.box }
-        val targetBubbles = if (translateOutsideBalloons) {
-            // One-shot override from the long-press menu: include ordinary
-            // OCR dialogue outside detected balloons/rectangles too.
-            // SFX/onomatopoeia remain untouched.
-            bubbles.filter { it.kind == BubbleKind.DIALOGUE }
-        } else {
-            dialogueInBalloons(bubbles, detected)
-        }
+        // OCR is the fallback geometry when the pixel balloon detector misses
+        // a bubble. Previously normal mode discarded every dialogue region
+        // outside detected balloons, which is exactly how a real bubble could
+        // remain untranslated even though OCR had found its text. Keep all
+        // dialogue regions by default; the detected balloon is still used for
+        // clean masking whenever one exists.
+        val targetBubbles = bubbles.filter { it.kind == BubbleKind.DIALOGUE }
 
         if (settings.engine != EngineKind.LLM) {
             val result = machineTranslate(bitmap, targetBubbles, ocrResult.lang, settings, detected)
