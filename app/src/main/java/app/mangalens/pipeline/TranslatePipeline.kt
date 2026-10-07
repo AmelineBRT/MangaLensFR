@@ -861,6 +861,7 @@ class TranslatePipeline(
         // A gradient or textured balloon is cleaned with its own paper
         // continued under the lettering, not with a flat patch of the average.
         val fill = balloon?.let { BalloonFill.build(bitmap, it) }
+        val outline = balloon?.let { balloonOutline(bitmap, it) }
         return RenderBubble(
             box = Rect(box),
             // Manga lettering is conventionally all-caps. Keep the translation
