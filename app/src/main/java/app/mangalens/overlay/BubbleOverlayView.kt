@@ -519,8 +519,17 @@ class BubbleOverlayView(context: Context) : View(context) {
         } else if (b.vertical) {
             boxW = maxOf(boxW, b.box.height() * 0.85f)
         }
-        boxW = boxW.coerceAtLeast(if (sfx) dp(48f) else dp(88f)).coerceAtMost(screenW * 0.92f)
-        val maxH = if (column) screenH * 0.38f else maxOf(b.box.height() + dp(26f), dp(64f))
+        // OCR geometry is deliberately given a little extra coverage when
+        // no balloon mask exists. The old card could be narrower than the
+        // original lettering, leaving source glyphs visible around it.
+        val sourceW = b.box.width().toFloat() * if (column || sfx) 1f else 1.18f
+        boxW = maxOf(boxW, sourceW)
+            .coerceAtLeast(if (sfx) dp(48f) else dp(88f))
+            .coerceAtMost(screenW * 0.92f)
+        val maxH = if (column) screenH * 0.38f else maxOf(
+            b.box.height() * if (sfx) 1f else 1.18f + dp(26f),
+            dp(64f)
+        )
 
         // Colors first: the text color depends on the fill it will sit on.
         // Dialogue cards paint effectively solid whatever the legacy opacity
@@ -640,6 +649,10 @@ class BubbleOverlayView(context: Context) : View(context) {
         for (i in 0 until list.size) {
             val p = list[i]
             if (p.mask != null && p.maskDst != null) {
+                // The cleaning layer is intentionally opaque. The overlay
+                // window itself is translucent, but the pixels of a cleaned
+                // balloon must never inherit alpha from the source lettering.
+                maskPaint.alpha = 255
                 maskPaint.colorFilter = p.tint
                 canvas.drawBitmap(p.mask, null, p.maskDst, maskPaint)
             } else if (p.card != null) {
