@@ -105,8 +105,7 @@ class BubbleOverlayView(context: Context) : View(context) {
      * multi-window or letterboxed reader that is wider than the view, and a
      * card against the right edge is clipped.
      */
-    private var source: List<RenderBubble> = emptyList()\n    private var currentSourceBitmap: Bitmap? = null
-
+    private var source: List<RenderBubble> = emptyList()\n    
     @Volatile var textScale = 1f
         set(value) {
             field = value.coerceIn(0.5f, 2f)
@@ -301,37 +300,15 @@ class BubbleOverlayView(context: Context) : View(context) {
             IntArray(w * h).also { f.getPixels(it, 0, w, 0, 0, w, h) }
         }
         val px = IntArray(w * h)
-        val page = context.resources // only used to keep this helper tied to the overlay's display context
-        val source = currentSourceBitmap
         var any = false
-
-        for (y in 0 until h) {
-            for (x in 0 until w) {
-                val i = y * w + x
-                if (!mask[i]) continue
-
-                // The complete interior is opaque. At the mask boundary we
-                // copy only a genuinely contrasting source pixel, preserving
-                // the original balloon outline instead of leaving a transparent
-                // ring where source lettering could survive.
-                val boundary = x == 0 || y == 0 || x == w - 1 || y == h - 1 ||
-                    !mask[i - 1] || !mask[i + 1] || !mask[i - w] || !mask[i + w]
-                if (boundary && source != null) {
-                    val sx = (balloon.box.left + ((x * 2 + 1) * balloon.box.width()) / (2 * w))
-                        .coerceIn(0, source.width - 1)
-                    val sy = (balloon.box.top + ((y * 2 + 1) * balloon.box.height()) / (2 * h))
-                        .coerceIn(0, source.height - 1)
-                    val sp = source.getPixel(sx, sy)
-                    val lum = (Color.red(sp) * 299 + Color.green(sp) * 587 + Color.blue(sp) * 114) / 1000
-                    val bgLum = (Color.red(bgColor) * 299 + Color.green(bgColor) * 587 + Color.blue(bgColor) * 114) / 1000
-                    val outline = if (balloon.inverted) lum > bgLum + 45 else lum < bgLum - 45
-                    px[i] = if (outline) sp or (0xFF shl 24)
-                    else if (colors != null) colors[i] or (0xFF shl 24) else Color.WHITE
-                } else {
-                    px[i] = if (colors != null) colors[i] or (0xFF shl 24) else Color.WHITE
-                }
-                any = true
-            }
+        // BalloonFinder's mask is the enclosed balloon interior. Paint every
+        // masked cell opaquely: an eroded ring is where source lettering can
+        // remain visible. The mask itself supplies the balloon shape, so no
+        // artificial dark contour is drawn over the original outline.
+        for (i in px.indices) {
+            if (!mask[i]) continue
+            px[i] = if (colors != null) colors[i] or (0xFF shl 24) else Color.WHITE
+            any = true
         }
         if (!any) return null
         return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
