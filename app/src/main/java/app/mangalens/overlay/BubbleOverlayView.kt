@@ -444,7 +444,10 @@ class BubbleOverlayView(context: Context) : View(context) {
             bg = fill,
             mask = stamp,
             maskDst = RectF(box),
-            tint = if (inpainted) null else PorterDuffColorFilter(fill, PorterDuff.Mode.SRC_IN),
+            // The stamp already contains opaque sampled pixels and its
+            // boundary carries the recreated outline. A SRC_IN filter here
+            // would turn that outline white and erase it.
+            tint = null,
         )
     }
 
