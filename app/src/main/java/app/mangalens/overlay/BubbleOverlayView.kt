@@ -40,6 +40,8 @@ data class RenderBubble(
      * paper is not one flat colour; null means fill with [bgColor].
      */
     val fill: Bitmap? = null,
+    /** The original balloon boundary, redrawn above the opaque cleaning fill. */
+    val outline: Bitmap? = null,
 )
 
 /**
@@ -441,9 +443,8 @@ class BubbleOverlayView(context: Context) : View(context) {
             bg = fill,
             mask = stamp,
             maskDst = RectF(box),
-            // The stamp already contains opaque sampled pixels and its
-            // boundary carries the recreated outline. A SRC_IN filter here
-            // would turn that outline white and erase it.
+            // The stamp is fully opaque. The original boundary is painted
+            // separately so the cleaning can reach every interior pixel.
             tint = null,
             outline = b.outline,
         )
