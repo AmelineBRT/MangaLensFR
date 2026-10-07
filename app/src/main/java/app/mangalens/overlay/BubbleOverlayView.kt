@@ -318,19 +318,15 @@ class BubbleOverlayView(context: Context) : View(context) {
         }
         val px = IntArray(w * h)
         var any = false
-        for (y in 0 until h) {
-            for (x in 0 until w) {
+        // Keep a one-cell ring transparent so the balloon's original outline
+        // remains untouched. Every interior cell is nevertheless written with
+        // a fully opaque sampled fill, so source lettering cannot show through.
+        for (y in 1 until h - 1) {
+            for (x in 1 until w - 1) {
                 val i = y * w + x
                 if (!mask[i]) continue
-                // Fill every detected interior pixel opaquely. At the boundary,
-                // redraw a compact dark outline so the balloon contour survives
-                // without sacrificing the opaque wipe underneath it.
-                val boundary =
-                    x == 0 || y == 0 || x == w - 1 || y == h - 1 ||
-                        !mask[i - 1] || !mask[i + 1] || !mask[i - w] || !mask[i + w]
-                px[i] = if (boundary) Color.rgb(32, 32, 32)
-                    else if (colors != null) colors[i] or (0xFF shl 24)
-                    else Color.WHITE
+                if (!mask[i - 1] || !mask[i + 1] || !mask[i - w] || !mask[i + w]) continue
+                px[i] = if (colors != null) colors[i] or (0xFF shl 24) else Color.WHITE
                 any = true
             }
         }
