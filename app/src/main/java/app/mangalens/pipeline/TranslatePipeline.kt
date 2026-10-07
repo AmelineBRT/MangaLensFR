@@ -96,7 +96,7 @@ class TranslatePipeline(
         const val VISION_CACHE_VERSION = 2
 
         /** Balloons OCR read nothing in that get a second, enlarged look. */
-        const val MAX_REREAD = 6
+        const val MAX_REREAD = 3
 
         /** Short side, in pixels, a re-read crop is enlarged toward. */
         const val REREAD_SHORT_SIDE = 320f
@@ -318,8 +318,23 @@ class TranslatePipeline(
         useVision: Boolean,
     ): PageResult {
         val balloons = detected.map { it.box }
+        // Normal mode is balloon-scoped. If the detector found no balloon at
+        // all, fall back to OCR for the whole page so a difficult page does
+        // not become completely blank. Once even one real balloon is known,
+        // OCR outside it is not allowed to turn captions, SFX or artwork into
+        // translations.
+        val targetBubbles = if (detected.isEmpty()) {
+            bubbles.filter { it.kind == BubbleKind.DIALOGUE }
+        } else {
+            bubbles.filter { b ->
+                b.kind == BubbleKind.DIALOGUE && detected.any { d ->
+                    d.box.contains(b.box.centerX(), b.box.centerY()) ||
+                        containedShare(b.box, d.box) >= 0.70f
+                }
+            }
+        }
         if (settings.engine != EngineKind.LLM) {
-            val result = machineTranslate(bitmap, bubbles, ocrResult.lang, settings, detected)
+            val result = machineTranslate(bitmap, targetBubbles, ocrResult.lang, settings, detected)
             // The free and offline engines only ever see text on-device OCR
             // managed to read, and stylized vertical lettering routinely
             // defeats it. Balloon detection can still see those balloons, so
@@ -344,7 +359,7 @@ class TranslatePipeline(
         // was written for, never onto whatever now sits at the same spot.
         val pageKey = if (useVision) visionKey(vision.cacheNamespace, ocrResult.lang, bubbles, bitmap) else null
         if (pageKey != null) {
-            visionCacheGet(pageKey, bubbles, bitmap.width, bitmap.height)?.let { cached ->
+            visionCacheGet(pageKey, targetBubbles, bitmap.width, bitmap.height)?.let { cached ->
                 return PageResult(
                     toRender(bitmap, cached, bubbles, anchorLines, ignoreTop, ignoreBottom, exclusions, detected),
                     vision.label, null, polished = true,
@@ -352,9 +367,9 @@ class TranslatePipeline(
             }
         } else {
             val ns = vision.cacheNamespace.removePrefix("Vision:")
-            val dialogue = bubbles.filter { it.kind == BubbleKind.DIALOGUE }
+            val dialogue = targetBubbles
             if (dialogue.isNotEmpty() && translation.fullyCached(ns, ocrResult.lang, dialogue.map { it.text })) {
-                return aiTextTranslate(bitmap, bubbles, ocrResult.lang, settings, detected)
+                return aiTextTranslate(bitmap, targetBubbles, ocrResult.lang, settings, detected)
             }
         }
 
@@ -379,7 +394,7 @@ class TranslatePipeline(
             val fastJob = onPartial?.let {
                 launch {
                     val fast = runCatching {
-                        machineTranslate(bitmap, bubbles, ocrResult.lang, settings, detected, forceGoogle = true)
+                        machineTranslate(bitmap, targetBubbles, ocrResult.lang, settings, detected, forceGoogle = true)
                     }.getOrNull()
                     if (fast != null && fast.bubbles.isNotEmpty() && !aiFinished) {
                         gate.withLock { draft = fast.bubbles }
@@ -401,13 +416,13 @@ class TranslatePipeline(
                                 paint(vision.label)
                             }
                         }
-                        val pageBubbles = vision.translatePage(bitmap, ocrResult.lang, bubbles, onBubble)
+                        val pageBubbles = vision.translatePage(bitmap, ocrResult.lang, targetBubbles, onBubble)
                         // The upgrade must never look worse than the draft:
                         // accept the vision result only if it covered most of
                         // the dialogue regions we know exist. Otherwise fall
                         // back to the text path, which renders AI text on
                         // exact OCR geometry.
-                        val dialogueIds = bubbles.indices.filter { bubbles[it].kind == BubbleKind.DIALOGUE }
+                        val dialogueIds = targetBubbles.indices
                         val covered = pageBubbles.count { it.id in dialogueIds }
                         val goodCoverage = dialogueIds.isEmpty() || covered * 2 >= dialogueIds.size
                         if (pageBubbles.isNotEmpty() && goodCoverage) {
@@ -417,13 +432,13 @@ class TranslatePipeline(
                             // it passed over that OCR *could* read is filled
                             // in from the text engine instead.
                             val complete = pageBubbles + gapFill(
-                                bubbles, pageBubbles, ocrResult.lang, settings,
+                                targetBubbles, pageBubbles, ocrResult.lang, settings,
                             )
                             pageKey?.let {
-                                visionCachePut(it, bubbles, complete, bitmap.width, bitmap.height)
+                                visionCachePut(it, targetBubbles, complete, bitmap.width, bitmap.height)
                             }
                             return@coroutineScope PageResult(
-                                toRender(bitmap, complete, bubbles, anchorLines, ignoreTop, ignoreBottom, exclusions, detected),
+                                toRender(bitmap, complete, targetBubbles, anchorLines, ignoreTop, ignoreBottom, exclusions, detected),
                                 vision.label, null, polished = true,
                             )
                         }
@@ -685,7 +700,7 @@ class TranslatePipeline(
     private fun visionKey(ns: String, lang: SourceLang, bubbles: List<Bubble>, bitmap: Bitmap): String =
         TranslationCache.key(
             ns, lang.name,
-            PageKey.of(bubbles.map { b -> PageKey.token(b.text) { PageKey.regionHash(bitmap, b.box) } }),
+            PageKey.of(targetBubbles.map { b -> PageKey.token(b.text) { PageKey.regionHash(bitmap, b.box) } }),
         )
 
     private fun normalized(box: Rect, w: Int, h: Int) = Rect(
