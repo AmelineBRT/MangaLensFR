@@ -70,6 +70,7 @@ class BubbleOverlayView(context: Context) : View(context) {
         val mask: Bitmap? = null,
         val maskDst: RectF? = null,
         val tint: PorterDuffColorFilter? = null,
+        val outline: Bitmap? = null,
         /**
          * Rectangle wiped to the sampled page color before the card paints —
          * the original lettering of an on-art vertical column, hidden without
@@ -150,6 +151,7 @@ class BubbleOverlayView(context: Context) : View(context) {
 
     private val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val maskPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+    private val outlinePaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeWidth = dp(1f)
@@ -318,14 +320,13 @@ class BubbleOverlayView(context: Context) : View(context) {
         }
         val px = IntArray(w * h)
         var any = false
-        // Keep a one-cell ring transparent so the balloon's original outline
-        // remains untouched. Every interior cell is nevertheless written with
-        // a fully opaque sampled fill, so source lettering cannot show through.
-        for (y in 1 until h - 1) {
-            for (x in 1 until w - 1) {
+        // Paint every detected interior cell fully opaque. The original
+        // balloon outline is drawn separately, so there is no transparent
+        // one-cell ring through which the source lettering can remain visible.
+        for (y in 0 until h) {
+            for (x in 0 until w) {
                 val i = y * w + x
                 if (!mask[i]) continue
-                if (!mask[i - 1] || !mask[i + 1] || !mask[i - w] || !mask[i + w]) continue
                 px[i] = if (colors != null) colors[i] or (0xFF shl 24) else Color.WHITE
                 any = true
             }
@@ -444,6 +445,7 @@ class BubbleOverlayView(context: Context) : View(context) {
             // boundary carries the recreated outline. A SRC_IN filter here
             // would turn that outline white and erase it.
             tint = null,
+            outline = b.outline,
         )
     }
 
@@ -659,7 +661,10 @@ class BubbleOverlayView(context: Context) : View(context) {
                 // balloon must never inherit alpha from the source lettering.
                 maskPaint.alpha = 255
                 maskPaint.colorFilter = p.tint
+                maskPaint.alpha = 255
+                maskPaint.colorFilter = p.tint
                 canvas.drawBitmap(p.mask, null, p.maskDst, maskPaint)
+                p.outline?.let { canvas.drawBitmap(it, null, p.maskDst, outlinePaint) }
             } else if (p.card != null) {
                 p.wipe?.let { wipe ->
                     bgPaint.color = Color.argb(
