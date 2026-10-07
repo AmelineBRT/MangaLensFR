@@ -38,3 +38,4 @@ jobs:
           tag="debug-v${{ steps.version.outputs.version }}"
           gh release delete "$tag" --yes --cleanup-tag 2>/dev/null || true
           gh release create "$tag" "MangaLensFR-${{ steps.version.outputs.version }}-debug.apk" checksums.txt --target "$GITHUB_SHA" --title "MangaLensFR ${{ steps.version.outputs.version }} — APK test" --notes "APK de test du fork MangaLensFR, signé avec la clé debug publique du projet."
+# CI branch rebuild
