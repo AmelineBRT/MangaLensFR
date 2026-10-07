@@ -40,6 +40,8 @@ data class RenderBubble(
      * paper is not one flat colour; null means fill with [bgColor].
      */
     val fill: Bitmap? = null,
+    /** Source pixels on the balloon boundary only, so the original outline survives an opaque clean. */
+    val outline: Bitmap? = null,
 )
 
 /**
@@ -256,7 +258,7 @@ class BubbleOverlayView(context: Context) : View(context) {
         if (b.translated.isBlank()) return null
         val balloon = b.balloon
         if (balloon != null) {
-            val stamp = erodedStamp(balloon, b.fill)
+            val stamp = erodedStamp(balloon, b.fill, b.outline)
             if (stamp != null) return placeClean(b, balloon, stamp, b.fill != null)
         }
         return placeCard(b, occupied)
@@ -290,7 +292,7 @@ class BubbleOverlayView(context: Context) : View(context) {
      * cleaned balloon. Null when nothing survives (a sliver of a mask); that
      * bubble falls back to the rounded card instead of stamping nothing.
      */
-    private fun erodedStamp(balloon: Balloon, fill: Bitmap?): Bitmap? {
+    private fun erodedStamp(balloon: Balloon, fill: Bitmap?, outline: Bitmap?): Bitmap? {
         val w = balloon.maskW
         val h = balloon.maskH
         val mask = balloon.mask
@@ -307,7 +309,17 @@ class BubbleOverlayView(context: Context) : View(context) {
         // artificial dark contour is drawn over the original outline.
         for (i in px.indices) {
             if (!mask[i]) continue
-            px[i] = if (colors != null) colors[i] or (0xFF shl 24) else Color.WHITE
+            val boundary = run {
+                val x = i % w
+                val y = i / w
+                x == 0 || y == 0 || x == w - 1 || y == h - 1 ||
+                    !mask[i - 1] || !mask[i + 1] || !mask[i - w] || !mask[i + w]
+            }
+            px[i] = if (boundary && outline != null && outline.width == w && outline.height == h) {
+                outline.getPixel(i % w, i / w) or (0xFF shl 24)
+            } else if (colors != null) {
+                colors[i] or (0xFF shl 24)
+            } else Color.WHITE
             any = true
         }
         if (!any) return null
