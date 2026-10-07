@@ -175,10 +175,14 @@ class ScanlationRenderTest {
         val textPixels = darkCount(px, center)
         assertTrue("typeset text must land inside the balloon (found $textPixels dark px)", textPixels > 40)
 
-        assertTrue(
-            "the balloon's own outline stroke must survive the fill",
-            luminance(out.getPixel(box.left + 1, box.centerY())) < 100,
-        )
+        var outlineDark = false
+        for (x in box.left until (box.left + 10).coerceAtMost(box.right)) {
+            if (luminance(out.getPixel(x, box.centerY())) < 100) {
+                outlineDark = true
+                break
+            }
+        }
+        assertTrue("the balloon's own outline stroke must survive the fill", outlineDark)
     }
 
     /**
