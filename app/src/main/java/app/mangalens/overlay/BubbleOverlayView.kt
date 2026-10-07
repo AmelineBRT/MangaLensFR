@@ -72,6 +72,7 @@ class BubbleOverlayView(context: Context) : View(context) {
         val mask: Bitmap? = null,
         val maskDst: RectF? = null,
         val tint: PorterDuffColorFilter? = null,
+        val outline: Bitmap? = null,
         /**
          * Rectangle wiped to the sampled page color before the card paints —
          * the original lettering of an on-art vertical column, hidden without
@@ -138,6 +139,7 @@ class BubbleOverlayView(context: Context) : View(context) {
 
     private val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val maskPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+    private val outlinePaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeWidth = dp(1f)
@@ -258,7 +260,7 @@ class BubbleOverlayView(context: Context) : View(context) {
         if (b.translated.isBlank()) return null
         val balloon = b.balloon
         if (balloon != null) {
-            val stamp = erodedStamp(balloon, b.fill, b.outline)
+            val stamp = erodedStamp(balloon, b.fill)
             if (stamp != null) return placeClean(b, balloon, stamp, b.fill != null)
         }
         return placeCard(b, occupied)
@@ -292,7 +294,7 @@ class BubbleOverlayView(context: Context) : View(context) {
      * cleaned balloon. Null when nothing survives (a sliver of a mask); that
      * bubble falls back to the rounded card instead of stamping nothing.
      */
-    private fun erodedStamp(balloon: Balloon, fill: Bitmap?, outline: Bitmap?): Bitmap? {
+    private fun erodedStamp(balloon: Balloon, fill: Bitmap?): Bitmap? {
         val w = balloon.maskW
         val h = balloon.maskH
         val mask = balloon.mask
@@ -315,11 +317,7 @@ class BubbleOverlayView(context: Context) : View(context) {
                 x == 0 || y == 0 || x == w - 1 || y == h - 1 ||
                     !mask[i - 1] || !mask[i + 1] || !mask[i - w] || !mask[i + w]
             }
-            px[i] = if (boundary && outline != null && outline.width == w && outline.height == h) {
-                outline.getPixel(i % w, i / w) or (0xFF shl 24)
-            } else if (colors != null) {
-                colors[i] or (0xFF shl 24)
-            } else Color.WHITE
+            px[i] = if (colors != null) colors[i] or (0xFF shl 24) else Color.WHITE
             any = true
         }
         if (!any) return null
@@ -433,6 +431,7 @@ class BubbleOverlayView(context: Context) : View(context) {
             mask = stamp,
             maskDst = RectF(box),
             tint = if (inpainted) null else PorterDuffColorFilter(fill, PorterDuff.Mode.SRC_IN),
+            outline = b.outline,
         )
     }
 
@@ -635,6 +634,7 @@ class BubbleOverlayView(context: Context) : View(context) {
             if (p.mask != null && p.maskDst != null) {
                 maskPaint.colorFilter = p.tint
                 canvas.drawBitmap(p.mask, null, p.maskDst, maskPaint)
+                p.outline?.let { canvas.drawBitmap(it, null, p.maskDst, outlinePaint) }
             } else if (p.card != null) {
                 p.wipe?.let { wipe ->
                     bgPaint.color = Color.argb(
