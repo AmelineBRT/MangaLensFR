@@ -108,7 +108,18 @@ class BubbleOverlayView(context: Context) : View(context) {
     private var source: List<RenderBubble> = emptyList()
 
     @Volatile var textScale = 1f
+        set(value) {
+            field = value.coerceIn(0.5f, 2f)
+            post {
+                if (source.isNotEmpty()) placed = placeAll(source)
+                invalidate()
+            }
+        }
     @Volatile var bgOpacity = 1f
+        set(value) {
+            field = value.coerceIn(0f, 1f)
+            post { invalidate() }
+        }
 
     /**
      * Comic Neue is the lettering hand; the platform faces stand in when the
@@ -292,15 +303,14 @@ class BubbleOverlayView(context: Context) : View(context) {
         }
         val px = IntArray(w * h)
         var any = false
-        for (y in 1 until h - 1) {
-            var i = y * w + 1
-            for (x in 1 until w - 1) {
-                if (mask[i] && mask[i - 1] && mask[i + 1] && mask[i - w] && mask[i + w]) {
-                    px[i] = if (colors != null) colors[i] or (0xFF shl 24) else Color.WHITE
-                    any = true
-                }
-                i++
-            }
+        // BalloonFinder's mask is the enclosed paper interior. Paint the
+        // complete mask: leaving an eroded ring is precisely where original
+        // lettering can survive. The mask itself stops at the balloon outline,
+        // so the outline remains untouched without sacrificing opacity.
+        for (i in px.indices) {
+            if (!mask[i]) continue
+            px[i] = if (colors != null) colors[i] or (0xFF shl 24) else Color.WHITE
+            any = true
         }
         if (!any) return null
         return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
