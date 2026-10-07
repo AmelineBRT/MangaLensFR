@@ -328,7 +328,7 @@ class BubbleOverlayView(context: Context) : View(context) {
                 any = true
             }
         }
-        if (!any) return nullll
+        if (!any) return null
         return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
     }
     /**
