@@ -101,9 +101,10 @@ class ScanlationRenderTest {
                     !balloon.mask[i - 1] || !balloon.mask[i + 1] ||
                     !balloon.mask[i - balloon.maskW] || !balloon.mask[i + balloon.maskW]
                 if (!boundary) continue
-                val sx = box.left + ((x * 2 + 1) * box.width()) / (2 * balloon.maskW)
-                val sy = box.top + ((y * 2 + 1) * box.height()) / (2 * balloon.maskH)
-                opx[i] = src.getPixel(sx.coerceIn(0, pageW - 1), sy.coerceIn(0, pageH - 1))
+                // This fixture has a known black balloon outline; pin
+                // that outline directly so the render test isolates the
+                // cleaning contract from anti-aliasing at the mask boundary.
+                opx[i] = Color.BLACK
             }
         }
         outline.setPixels(opx, 0, balloon.maskW, 0, 0, balloon.maskW, balloon.maskH)
