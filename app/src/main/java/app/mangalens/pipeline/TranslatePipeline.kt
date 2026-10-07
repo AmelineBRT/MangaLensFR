@@ -357,11 +357,11 @@ class TranslatePipeline(
         // page's content — OCR text, or the balloons' own pixels where OCR
         // read nothing — so a hit can only replay text onto the balloons it
         // was written for, never onto whatever now sits at the same spot.
-        val pageKey = if (useVision) visionKey(vision.cacheNamespace, ocrResult.lang, bubbles, bitmap) else null
+        val pageKey = if (useVision) visionKey(vision.cacheNamespace, ocrResult.lang, targetBubbles, bitmap) else null
         if (pageKey != null) {
             visionCacheGet(pageKey, targetBubbles, bitmap.width, bitmap.height)?.let { cached ->
                 return PageResult(
-                    toRender(bitmap, cached, bubbles, anchorLines, ignoreTop, ignoreBottom, exclusions, detected),
+                    toRender(bitmap, cached, targetBubbles, anchorLines, ignoreTop, ignoreBottom, exclusions, detected),
                     vision.label, null, polished = true,
                 )
             }
@@ -410,7 +410,7 @@ class TranslatePipeline(
                             { vb ->
                                 streamed.add(vb)
                                 val rendered = toRender(
-                                    bitmap, streamed.toList(), bubbles, anchorLines, ignoreTop, ignoreBottom, exclusions, detected,
+                                    bitmap, streamed.toList(), targetBubbles, anchorLines, ignoreTop, ignoreBottom, exclusions, detected,
                                 )
                                 gate.withLock { polish = rendered }
                                 paint(vision.label)
@@ -454,7 +454,7 @@ class TranslatePipeline(
                         paint(vision.label)
                     }
                 }
-                aiTextTranslate(bitmap, bubbles, ocrResult.lang, settings, detected, onProgress)
+                aiTextTranslate(bitmap, targetBubbles, ocrResult.lang, settings, detected, onProgress)
             } finally {
                 aiFinished = true
                 fastJob?.cancel()
