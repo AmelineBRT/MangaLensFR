@@ -798,6 +798,7 @@ class TranslatePipeline(
         // A gradient or textured balloon is cleaned with its own paper
         // continued under the lettering, not with a flat patch of the average.
         val fill = balloon?.let { BalloonFill.build(bitmap, it) }
+        val outline = balloon?.let { balloonOutline(bitmap, it) }
         return RenderBubble(
             box = Rect(box),
             translated = translated,
@@ -808,6 +809,7 @@ class TranslatePipeline(
             kind = kind,
             balloon = balloon,
             fill = fill,
+            outline = outline,
         )
     }
 
@@ -900,6 +902,29 @@ class TranslatePipeline(
         val avg = Color.rgb((r / n).toInt(), (g / n).toInt(), (b / n).toInt())
         // Most bubbles are white; snap near-white fills to pure white.
         return if (!balloon.inverted && luminance(avg) > 190) Color.WHITE else avg
+    }
+
+    /** Copies only the detected balloon boundary from the source page. */
+    private fun balloonOutline(bitmap: Bitmap, balloon: Balloon): Bitmap? {
+        val w = balloon.maskW
+        val h = balloon.maskH
+        if (w < 1 || h < 1 || balloon.mask.size < w * h) return null
+        val out = IntArray(w * h)
+        val box = balloon.box
+        for (y in 0 until h) {
+            for (x in 0 until w) {
+                val i = y * w + x
+                if (!balloon.mask[i]) continue
+                val boundary = x == 0 || y == 0 || x == w - 1 || y == h - 1 ||
+                    !balloon.mask[i - 1] || !balloon.mask[i + 1] ||
+                    !balloon.mask[i - w] || !balloon.mask[i + w]
+                if (!boundary) continue
+                val sx = (box.left + ((x * 2 + 1) * box.width()) / (2 * w)).coerceIn(0, bitmap.width - 1)
+                val sy = (box.top + ((y * 2 + 1) * box.height()) / (2 * h)).coerceIn(0, bitmap.height - 1)
+                out[i] = bitmap.getPixel(sx, sy) or (0xFF shl 24)
+            }
+        }
+        return Bitmap.createBitmap(out, w, h, Bitmap.Config.ARGB_8888)
     }
 
     private fun luminance(c: Int) = (Color.red(c) * 299 + Color.green(c) * 587 + Color.blue(c) * 114) / 1000
