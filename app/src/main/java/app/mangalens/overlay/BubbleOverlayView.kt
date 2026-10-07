@@ -310,23 +310,18 @@ class BubbleOverlayView(context: Context) : View(context) {
         val mask = balloon.mask
         if (w < 1 || h < 1 || mask.size < w * h) return null
 
-        // Fill the interior opaquely, but preserve a one-cell safety ring
-        // around the detected boundary so the original balloon outline remains
-        // visible. The ring is outside the lettering area, so it does not let
-        // source text bleed through.
+        // BalloonFinder already hole-fills the detected interior. Do not erode it
+        // again here: the extra erosion was re-exposing the original lettering
+        // around the inside edge of the balloon.
         val colors = fill?.takeIf { it.width == w && it.height == h }?.let { f ->
             IntArray(w * h).also { f.getPixels(it, 0, w, 0, 0, w, h) }
         }
         val px = IntArray(w * h)
         var any = false
-        for (y in 1 until h - 1) {
-            for (x in 1 until w - 1) {
-                val i = y * w + x
-                if (!mask[i]) continue
-                if (!mask[i - 1] || !mask[i + 1] || !mask[i - w] || !mask[i + w]) continue
-                px[i] = if (colors != null) colors[i] or (0xFF shl 24) else Color.WHITE
-                any = true
-            }
+        for (i in mask.indices) {
+            if (!mask[i]) continue
+            px[i] = if (colors != null) colors[i] or (0xFF shl 24) else Color.WHITE
+            any = true
         }
         if (!any) return null
         return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)

@@ -128,16 +128,39 @@ class TranslatePipeline(
         // the balloons well enough. This is the main latency guard.
         var useVision = false
 
-        // Balloons come from the page pixels, so a region exists because the
-        // page shows one — not because OCR happened to read something in it.
-        // The detailed detections carry each balloon's interior mask, which
-        // is what lets a card wipe the balloon clean instead of floating a
-        // patch over it. Detection and OCR read the same frame and neither
-        // waits on the other, so they run side by side.
+        // Google is the zero-setup/default engine. Its translation only needs
+        // OCR + grouping, exactly as in the original fast version of MangaLens.
+        // The balloon pixel detector is useful for Vision AI, but putting it on
+        // the critical path made every free translation slower.
+        if (settings.engine == EngineKind.GOOGLE) {
+            val firstPass = ocr.recognize(bitmap, settings.sourceLang)
+            val bubbles = BubbleGrouper.group(
+                firstPass.lines, bitmap.height, ignoreTop, ignoreBottom, firstPass.lang, exclusions,
+            )
+            val anchorLines = firstPass.lines.mapNotNull { l ->
+                val cleaned = Script.clean(l.text)
+                if (cleaned.length < 2) return@mapNotNull null
+                if (l.box.bottom <= ignoreTop || l.box.top >= bitmap.height - ignoreBottom) return@mapNotNull null
+                if (exclusions.any { Rect.intersects(it, l.box) }) return@mapNotNull null
+                OcrLine(cleaned, l.box, l.vertical)
+            }
+            val diag = if (settings.diagnostics)
+                "ocr " + firstPass.lines.size + " · balloons — · panels — · regions " + bubbles.size
+            else null
+            return@coroutineScope Analysis(
+                bitmap, firstPass, emptyList(), emptyList(), bubbles, anchorLines,
+                ignoreTop, ignoreBottom, exclusions, false, diag,
+            )
+        }
+
+        // AI paths: OCR and balloon detection genuinely run side by side.
+        val ocrJob = async(Dispatchers.Default) {
+            ocr.recognize(bitmap, settings.sourceLang)
+        }
         val scanJob = async(Dispatchers.Default) {
             BalloonFinder.analyze(bitmap, ignoreTop, ignoreBottom, exclusions)
         }
-        val firstPass = ocr.recognize(bitmap, settings.sourceLang)
+        val firstPass = ocrJob.await()
         val scan = scanJob.await()
 
         // ML Kit misses small and stylized lettering it would read fine at
