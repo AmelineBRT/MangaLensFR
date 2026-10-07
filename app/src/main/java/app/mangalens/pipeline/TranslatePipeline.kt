@@ -133,9 +133,28 @@ class TranslatePipeline(
         // The balloon pixel detector is useful for Vision AI, but putting it on
         // the critical path made every free translation slower.
         if (settings.engine == EngineKind.GOOGLE) {
-            val firstPass = ocr.recognize(bitmap, settings.sourceLang)
+            // Keep Google's fast text-only translation path, but still run the
+            // cheap pixel balloon scan in parallel with OCR. Without this scan
+            // every OCR word on the page became a translation candidate,
+            // including narration/SFX/art lettering outside balloons.
+            val ocrJob = async(Dispatchers.Default) {
+                ocr.recognize(bitmap, settings.sourceLang)
+            }
+            val scanJob = async(Dispatchers.Default) {
+                BalloonFinder.analyze(bitmap, ignoreTop, ignoreBottom, exclusions)
+            }
+            val firstPass = ocrJob.await()
+            val scan = scanJob.await()
+            val detected = scan.balloons.filter { b ->
+                !b.partial || firstPass.lines.any { l ->
+                    Script.clean(l.text).length >= 2 &&
+                        b.box.contains(l.box.centerX(), l.box.centerY())
+                }
+            }
+            val balloons = detected.map { it.box }
             val bubbles = BubbleGrouper.group(
                 firstPass.lines, bitmap.height, ignoreTop, ignoreBottom, firstPass.lang, exclusions,
+                balloons, includeEmptyBalloons = false, panels = scan.panels,
             )
             val anchorLines = firstPass.lines.mapNotNull { l ->
                 val cleaned = Script.clean(l.text)
@@ -145,10 +164,11 @@ class TranslatePipeline(
                 OcrLine(cleaned, l.box, l.vertical)
             }
             val diag = if (settings.diagnostics)
-                "ocr " + firstPass.lines.size + " · balloons — · panels — · regions " + bubbles.size
+                "ocr " + firstPass.lines.size + " · balloons " + balloons.size +
+                    " · panels " + scan.panels.size + " · regions " + bubbles.size
             else null
             return@coroutineScope Analysis(
-                bitmap, firstPass, emptyList(), emptyList(), bubbles, anchorLines,
+                bitmap, firstPass, detected, scan.panels, bubbles, anchorLines,
                 ignoreTop, ignoreBottom, exclusions, false, diag,
             )
         }
@@ -362,13 +382,23 @@ class TranslatePipeline(
         translateOutsideBalloons: Boolean,
     ): PageResult {
         val balloons = detected.map { it.box }
-        // OCR is the fallback geometry when the pixel balloon detector misses
-        // a bubble. Previously normal mode discarded every dialogue region
-        // outside detected balloons, which is exactly how a real bubble could
-        // remain untranslated even though OCR had found its text. Keep all
-        // dialogue regions by default; the detected balloon is still used for
-        // clean masking whenever one exists.
-        val targetBubbles = bubbles.filter { it.kind == BubbleKind.DIALOGUE }
+        // Normal mode is strictly balloon-scoped. OCR geometry is only allowed
+        // to choose the text inside a detected balloon; otherwise captions,
+        // SFX and lettering on the artwork become accidental translations.
+        // The explicit "translate outside" action is the only escape hatch.
+        val targetBubbles = if (translateOutsideBalloons) {
+            bubbles.filter { it.kind == BubbleKind.DIALOGUE }
+        } else {
+            bubbles.filter { b ->
+                b.kind == BubbleKind.DIALOGUE &&
+                    detected.any { d ->
+                        val ix = maxOf(0, minOf(b.box.right, d.box.right) - maxOf(b.box.left, d.box.left))
+                        val iy = maxOf(0, minOf(b.box.bottom, d.box.bottom) - maxOf(b.box.top, d.box.top))
+                        val area = b.box.width().toLong() * b.box.height().toLong()
+                        area > 0L && ix.toLong() * iy.toLong() >= area * 0.35
+                    }
+            }
+        }
 
         if (settings.engine != EngineKind.LLM) {
             val result = machineTranslate(bitmap, targetBubbles, ocrResult.lang, settings, detected)
