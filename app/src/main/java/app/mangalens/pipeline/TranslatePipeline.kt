@@ -476,19 +476,6 @@ class TranslatePipeline(
         }
     }
 
-    /** Only real dialogue inside a detected speech balloon is translatable/renderable. */
-    private fun dialogueInBalloons(
-        bubbles: List<Bubble>,
-        detected: List<Balloon>,
-    ): List<Bubble> =
-        bubbles.filter { b ->
-            b.kind == BubbleKind.DIALOGUE &&
-                detected.any { balloon ->
-                    balloon.box.contains(b.box.centerX(), b.box.centerY()) ||
-                        containedShare(b.box, balloon.box) >= 0.35f
-                }
-        }
-
     // ---- machine engines (Google / on-device), also the AI fast path ----
 
     private suspend fun machineTranslate(
