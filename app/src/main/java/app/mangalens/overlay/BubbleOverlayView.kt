@@ -40,8 +40,6 @@ data class RenderBubble(
      * paper is not one flat colour; null means fill with [bgColor].
      */
     val fill: Bitmap? = null,
-    /** The original balloon boundary, redrawn above the opaque cleaning fill. */
-    val outline: Bitmap? = null,
 )
 
 /**
@@ -72,7 +70,6 @@ class BubbleOverlayView(context: Context) : View(context) {
         val mask: Bitmap? = null,
         val maskDst: RectF? = null,
         val tint: PorterDuffColorFilter? = null,
-        val outline: Bitmap? = null,
         /**
          * Rectangle wiped to the sampled page color before the card paints —
          * the original lettering of an on-art vertical column, hidden without
@@ -160,7 +157,6 @@ class BubbleOverlayView(context: Context) : View(context) {
         isFilterBitmap = false
         isDither = false
     }
-    private val outlinePaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeWidth = dp(1f)
@@ -281,8 +277,8 @@ class BubbleOverlayView(context: Context) : View(context) {
         if (b.translated.isBlank()) return null
         val balloon = b.balloon
         if (balloon != null) {
-            val stamp = erodedStamp(balloon, b.fill)
-            if (stamp != null) return placeClean(b, balloon, stamp, b.fill != null)
+            val stamp = opaqueStamp(balloon)
+            if (stamp != null) return placeClean(b, balloon, stamp)
         }
         return placeCard(b, occupied)
     }
@@ -307,24 +303,19 @@ class BubbleOverlayView(context: Context) : View(context) {
     }
 
     /**
-     * The balloon interior as a tintable stamp, shrunk by one mask cell: a
-     * cell survives only when all four neighbours are interior too, and the
-     * mask border always dies. The ring this gives up is what keeps the
-     * balloon's own outline stroke visible around the fill — a fill that
-     * erases the outline reads as a hole punched in the page rather than a
-     * cleaned balloon. Null when nothing survives (a sliver of a mask); that
-     * bubble falls back to the rounded card instead of stamping nothing.
+     * Builds the opaque cleaning mask from the detector's already hole-filled
+     * balloon interior. There is deliberately no erosion and no source-outline
+     * redraw: the original lettering must be covered completely, while the
+     * actual balloon border remains untouched because it is outside this mask.
      */
-    private fun erodedStamp(balloon: Balloon, fill: Bitmap?): Bitmap? {
+    private fun opaqueStamp(balloon: Balloon): Bitmap? {
         val w = balloon.maskW
         val h = balloon.maskH
         val mask = balloon.mask
         if (w < 1 || h < 1 || mask.size < w * h) return null
 
-        // The cleaning stamp is deliberately pure white and fully opaque
-        // inside the detected balloon. Never reuse a sampled/gradient fill here:
-        // the reader must not see the original lettering or artwork through the
-        // translation background.
+        // Pure white and fully opaque. The detector's mask is hole-filled, so
+        // source glyphs are not spared as holes in the cleaning layer.
         val px = IntArray(w * h)
         var any = false
         for (i in mask.indices) {
@@ -350,7 +341,7 @@ class BubbleOverlayView(context: Context) : View(context) {
      * The fill is opaque; the whole point is that the original lettering
      * must not ghost through the English.
      */
-    private fun placeClean(b: RenderBubble, balloon: Balloon, stamp: Bitmap, inpainted: Boolean): Placed? {
+    private fun placeClean(b: RenderBubble, balloon: Balloon, stamp: Bitmap): Placed? {
         val sfx = b.kind == BubbleKind.SFX
         val box = balloon.box
         val tp = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
