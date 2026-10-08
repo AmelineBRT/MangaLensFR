@@ -23,8 +23,8 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * Text set into the balloon's real shape rather than its box: the lines
  * follow the interior row by row, a tail never pulls the block toward it,
- * and a gradient balloon is cleaned with its own paper rather than a flat
- * patch.
+ * and a balloon is cleaned to an opaque white interior so the source lettering
+ * cannot ghost through the translated text.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -166,10 +166,10 @@ class ShapedTypesetTest {
         assertEquals("no lettering outside the balloon's interior", 0, outside)
     }
 
-    // ---- Inpainting: a gradient balloon keeps its gradient ----
+    // ---- Cleaning: even gradient balloons get a fully opaque white interior ----
 
     @Test
-    fun `a gradient balloon is cleaned with its own gradient`() {
+    fun `a gradient balloon is cleaned with an opaque white interior`() {
         val pageW = 720
         val pageH = 500
         val box = Rect(110, 90, 610, 410)
@@ -225,19 +225,20 @@ class ShapedTypesetTest {
         v.draw(canvas)
         writePreview("gradient-balloon.png", page)
 
-        // The lettering is gone, and where it was the paper follows the
-        // gradient: pink on the left, blue on the right.
+        // The original lettering is gone. The cleaned interior is deliberately
+        // opaque white, including over a non-white/gradient balloon, so the
+        // source page cannot show through the translated lettering.
         val px = IntArray(pageW * pageH)
         page.getPixels(px, 0, pageW, 0, 0, pageW, pageH)
         var leftover = 0
         for (c in px) if (Color.red(c) >= 140 && Color.green(c) <= 60 && Color.blue(c) <= 60) leftover++
         assertEquals("no original lettering may survive", 0, leftover)
-        // Sampled on the lettering row, under the wiped lettering and out
-        // near each end where the gradient is unambiguous.
+        // Sample inside the cleaned body: the replacement pixels must be
+        // fully opaque white rather than a sampled translucent-looking fill.
         val leftPx = page.getPixel(box.left + 70, box.top + 111)
         val rightPx = page.getPixel(box.right - 70, box.top + 111)
-        assertTrue("left of the balloon reads pink, got ${Integer.toHexString(leftPx)}", Color.red(leftPx) > Color.blue(leftPx) + 20)
-        assertTrue("right of the balloon reads blue, got ${Integer.toHexString(rightPx)}", Color.blue(rightPx) > Color.red(rightPx) + 20)
+        assertEquals(Color.WHITE, leftPx)
+        assertEquals(Color.WHITE, rightPx)
     }
 
     @Test
