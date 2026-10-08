@@ -274,7 +274,7 @@ class BubbleOverlayView(context: Context) : View(context) {
         if (b.translated.isBlank()) return null
         val balloon = b.balloon
         if (balloon != null) {
-            val stamp = opaqueStamp(balloon, b.fill, b.bgColor)
+            val stamp = opaqueStamp(balloon)
             if (stamp != null) return placeClean(b, balloon, stamp)
         }
         return placeCard(b, occupied)
@@ -305,30 +305,19 @@ class BubbleOverlayView(context: Context) : View(context) {
      * redraw: the original lettering must be covered completely, while the
      * actual balloon border remains untouched because it is outside this mask.
      */
-    private fun opaqueStamp(balloon: Balloon, fill: Bitmap?, fallbackColor: Int): Bitmap? {
+    private fun opaqueStamp(balloon: Balloon): Bitmap? {
         val w = balloon.maskW
         val h = balloon.maskH
         val mask = balloon.mask
         if (w < 1 || h < 1 || mask.size < w * h) return null
-
-        // The detector's mask is hole-filled: every pixel inside the actual
-        // balloon is painted, including the pixels occupied by the source
-        // lettering. No erosion, transparency or source-outline reconstruction.
-        val source = fill?.takeIf { it.width == w && it.height == h }
-        val fillPixels = source?.let { f ->
-            IntArray(w * h).also { f.getPixels(it, 0, w, 0, 0, w, h) }
-        }
-        val opaque = Color.rgb(
-            Color.red(fallbackColor),
-            Color.green(fallbackColor),
-            Color.blue(fallbackColor),
-        )
         val px = IntArray(w * h)
         var any = false
-        for (i in mask.indices) {
+        // Deliberately pure opaque white. The user requirement is to hide every
+        // source glyph completely, including on coloured/gradient balloons.
+        val white = Color.WHITE
+        for (i in 0 until w * h) {
             if (!mask[i]) continue
-            val c = fillPixels?.get(i) ?: opaque
-            px[i] = c or (0xFF shl 24)
+            px[i] = white
             any = true
         }
         if (!any) return null
