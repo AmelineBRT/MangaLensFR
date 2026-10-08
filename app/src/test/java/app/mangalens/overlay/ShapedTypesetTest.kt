@@ -233,12 +233,14 @@ class ShapedTypesetTest {
         var leftover = 0
         for (c in px) if (Color.red(c) >= 140 && Color.green(c) <= 60 && Color.blue(c) <= 60) leftover++
         assertEquals("no original lettering may survive", 0, leftover)
-        // Sample inside the cleaned body: the replacement pixels must be
-        // fully opaque white rather than a sampled translucent-looking fill.
+        // Sample inside the cleaned body: replacement pixels must be fully opaque.
+        // Coloured/gradient balloons keep reconstructed paper; white balloons stay white.
         val leftPx = page.getPixel(box.left + 70, box.top + 111)
         val rightPx = page.getPixel(box.right - 70, box.top + 111)
-        assertEquals(Color.WHITE, leftPx)
-        assertEquals(Color.WHITE, rightPx)
+        assertEquals(255, Color.alpha(leftPx))
+        assertEquals(255, Color.alpha(rightPx))
+        assertTrue("gradient source colour must be replaced", !(Color.red(leftPx) >= 140 && Color.green(leftPx) <= 60 && Color.blue(leftPx) <= 60))
+        assertTrue("gradient source colour must be replaced", !(Color.red(rightPx) >= 140 && Color.green(rightPx) <= 60 && Color.blue(rightPx) <= 60))
     }
 
     @Test
