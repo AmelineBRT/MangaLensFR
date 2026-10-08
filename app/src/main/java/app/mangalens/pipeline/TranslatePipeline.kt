@@ -551,6 +551,7 @@ class TranslatePipeline(
         settings: AppSettings,
         detected: List<Balloon>,
         forceGoogle: Boolean = false,
+        onPartial: (suspend (PageResult) -> Unit)? = null,
     ): PageResult {
         // Balloons detected in the pixels but unread by OCR carry no text; the
         // machine engines have nothing to work from and would render blanks.
