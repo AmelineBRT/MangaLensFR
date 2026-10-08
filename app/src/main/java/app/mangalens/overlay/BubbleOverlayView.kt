@@ -321,21 +321,21 @@ class BubbleOverlayView(context: Context) : View(context) {
         val mask = balloon.mask
         if (w < 1 || h < 1 || mask.size < w * h) return null
 
+        // The cleaning stamp is opaque exactly where the detected balloon
+        // interior exists and transparent everywhere else. When a textured
+        // fill is available, keep its RGB values; otherwise use pure white.
+        // In both cases alpha is forced to 255 inside the mask, so source
+        // lettering can never ghost through the replacement.
         val colors = fill?.takeIf { it.width == w && it.height == h }?.let { f ->
             IntArray(w * h).also { f.getPixels(it, 0, w, 0, 0, w, h) }
         }
         val px = IntArray(w * h)
         var any = false
-        // Use the detector's already hole-filled interior exactly as-is.
-        // Expanding by a whole analysis cell made the stamp spill outside the
-        // balloon on small/tapered shapes and could bleach artwork or the
-        // balloon outline. Every retained pixel is nevertheless a literal
-        // 0xFFFFFFFF pixel: there is no semi-transparent white in the stamp.
         for (i in mask.indices) {
-            if (mask[i]) {
-                px[i] = 0xFFFFFFFF.toInt()
-                any = true
-            }
+            if (!mask[i]) continue
+            val rgb = colors?.get(i) ?: Color.WHITE
+            px[i] = (rgb and 0x00FFFFFF) or 0xFF000000.toInt()
+            any = true
         }
         if (!any) return null
         return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
