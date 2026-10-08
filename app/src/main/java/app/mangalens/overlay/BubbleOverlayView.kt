@@ -447,7 +447,7 @@ class BubbleOverlayView(context: Context) : View(context) {
             // separately so the cleaning can reach every interior pixel.
             // No outline is reconstructed or painted by MangaLensFR.
             tint = null,
-            outline = null,
+            outline = b.outline,
         )
     }
 
@@ -666,7 +666,11 @@ class BubbleOverlayView(context: Context) : View(context) {
                 // replaces the pixels below it.
                 maskPaint.alpha = 255
                 maskPaint.colorFilter = p.tint
-                canvas.drawBitmap(p.mask, null, p.maskDst, maskPaint)            } else if (p.card != null) {
+                canvas.drawBitmap(p.mask, null, p.maskDst, maskPaint)
+                p.outline?.let { outline ->
+                    canvas.drawBitmap(outline, null, p.maskDst, outlinePaint)
+                }
+            } else if (p.card != null) {
                 p.wipe?.let { wipe ->
                     bgPaint.color = Color.argb(
                         255, Color.red(p.bg), Color.green(p.bg), Color.blue(p.bg)
