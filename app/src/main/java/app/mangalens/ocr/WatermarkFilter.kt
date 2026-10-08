@@ -10,6 +10,7 @@ import android.graphics.Rect
  * detected dialogue balloon. Known scan-credit strings get an extra signal.
  */
 object WatermarkFilter {
+    // v0.11.0 follow-up: OCR text is retained globally; only watermark candidates are removed.
 
     private val known = listOf(
         "weconics", "wecomics", "webtoon", "scanlation", "scan", "raw",
