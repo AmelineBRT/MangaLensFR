@@ -20,7 +20,7 @@ import kotlinx.coroutines.flow.first
 
 enum class EngineKind { GOOGLE, LLM, MLKIT }
 enum class LlmProvider { ANTHROPIC, OPENAI, GEMINI, OPENROUTER, CUSTOM }
-enum class SourceLang { AUTO, KO, JA, ZH }
+enum class SourceLang { AUTO, EN, KO, JA, ZH }
 enum class CaptureMode { AUTO, MANUAL }
 
 /**
