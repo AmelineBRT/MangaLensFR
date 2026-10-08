@@ -4,6 +4,22 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+val downloadMangaFont = tasks.register("downloadMangaFont") {
+    val out = file("src/main/res/font/mochiy_pop_one.ttf")
+    outputs.file(out)
+    doLast {
+        if (!out.exists() || out.length() < 1000000L) {
+            out.parentFile.mkdirs()
+            java.net.URL("https://raw.githubusercontent.com/fontdasu/Mochiypop/master/fonts/ttf/MochiyPopOne-Regular.ttf")
+                .openStream().use { input ->
+                    out.outputStream().use { output -> input.copyTo(output) }
+                }
+        }
+    }
+}
+
+tasks.named("preBuild").configure { dependsOn(downloadMangaFont) }
+
 android {
     namespace = "app.mangalens"
     compileSdk = 35
@@ -13,7 +29,7 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = 43
-        versionName = "0.10.9"
+        versionName = "0.11.0"
 
         ndk {
             // Every modern tablet is arm64; dropping the other ABIs takes the
