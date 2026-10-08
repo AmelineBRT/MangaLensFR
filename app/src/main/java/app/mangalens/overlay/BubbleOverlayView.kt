@@ -314,21 +314,19 @@ class BubbleOverlayView(context: Context) : View(context) {
         val mask = balloon.mask
         if (w < 1 || h < 1 || mask.size < w * h) return null
 
-        // BalloonFinder already hole-fills the detected interior. Do not erode it
-        // again here: the extra erosion was re-exposing the original lettering
-        // around the inside edge of the balloon.
         val colors = fill?.takeIf { it.width == w && it.height == h }?.let { f ->
             IntArray(w * h).also { f.getPixels(it, 0, w, 0, 0, w, h) }
         }
         val px = IntArray(w * h)
         var any = false
-        // Paint every detected interior cell fully opaque. The original
-        // balloon outline is drawn separately, so there is no transparent
-        // one-cell ring through which the source lettering can remain visible.
-        for (y in 0 until h) {
-            for (x in 0 until w) {
+        // Keep only the one-cell boundary ring transparent so the original
+        // balloon outline remains visible. Every other detected interior
+        // pixel is fully opaque, so original lettering cannot show through.
+        for (y in 1 until h - 1) {
+            for (x in 1 until w - 1) {
                 val i = y * w + x
                 if (!mask[i]) continue
+                if (!mask[i - 1] || !mask[i + 1] || !mask[i - w] || !mask[i + w]) continue
                 px[i] = if (colors != null) colors[i] or (0xFF shl 24) else Color.WHITE
                 any = true
             }
