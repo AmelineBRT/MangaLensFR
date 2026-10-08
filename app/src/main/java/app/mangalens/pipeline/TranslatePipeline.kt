@@ -158,10 +158,11 @@ class TranslatePipeline(
                 }
             }
             val balloons = detected.map { it.box }
-            val bubbles = BubbleGrouper.group(
+            val groupedBubbles = BubbleGrouper.group(
                 cleanOcr.lines, bitmap.height, ignoreTop, ignoreBottom, cleanOcr.lang, exclusions,
                 balloons, includeEmptyBalloons = false, panels = scan.panels,
             )
+            val bubbles = includeAllOcrLines(groupedBubbles, cleanOcr.lines)
             val anchorLines = cleanOcr.lines.mapNotNull { l ->
                 val cleaned = Script.clean(l.text)
                 if (cleaned.length < 2) return@mapNotNull null
@@ -229,10 +230,11 @@ class TranslatePipeline(
             }
         }
         val balloons = detected.map { it.box }
-        val bubbles = BubbleGrouper.group(
+        val groupedBubbles = BubbleGrouper.group(
             ocrResult.lines, bitmap.height, ignoreTop, ignoreBottom, ocrResult.lang, exclusions,
             balloons, includeEmptyBalloons = useVision, panels = scan.panels,
         )
+        val bubbles = includeAllOcrLines(groupedBubbles, ocrResult.lines)
         // Raw OCR lines, kept for anchoring the vision model's unanchored
         // answers by their text — the lines know where the text physically
         // is even when they never survived into a region.
@@ -254,6 +256,23 @@ class TranslatePipeline(
             bitmap, ocrResult, detected, scan.panels, bubbles, anchorLines,
             ignoreTop, ignoreBottom, exclusions, useVision, diag,
         )
+    }
+
+    /** Ensures every usable OCR line remains translatable even when grouping or balloon detection rejects it. */
+    private fun includeAllOcrLines(grouped: List<Bubble>, lines: List<OcrLine>): List<Bubble> {
+        val out = grouped.toMutableList()
+        for (line in lines) {
+            val text = Script.clean(line.text)
+            if (text.length < 2 || line.box.width() < 2 || line.box.height() < 2) continue
+            val alreadyCovered = out.any { b ->
+                val ix = maxOf(0, minOf(b.box.right, line.box.right) - maxOf(b.box.left, line.box.left))
+                val iy = maxOf(0, minOf(b.box.bottom, line.box.bottom) - maxOf(b.box.top, line.box.top))
+                val area = line.box.width().toLong() * line.box.height()
+                area > 0L && ix.toLong() * iy.toLong() >= area * 0.72f
+            }
+            if (!alreadyCovered) out.add(Bubble(text, Rect(line.box), line.vertical, BubbleKind.DIALOGUE))
+        }
+        return out
     }
 
     /**
@@ -394,21 +413,13 @@ class TranslatePipeline(
         translateOutsideBalloons: Boolean,
     ): PageResult {
         val balloons = detected.map { it.box }
-        // Normal mode is strictly balloon-scoped. OCR geometry is only allowed
-        // to choose the text inside a detected balloon; otherwise captions,
-        // SFX and lettering on the artwork become accidental translations.
-        // The explicit "translate outside" action is the only escape hatch.
-        val targetBubbles = if (translateOutsideBalloons) {
-            bubbles.filter { it.kind == BubbleKind.DIALOGUE }
-        } else {
-            // Association is based on the balloon's actual pixel mask, not
-            // merely on overlapping rectangles. This stops drawings near a
-            // balloon from stealing its translation.
-            bubbles.filter { b ->
-                b.kind == BubbleKind.DIALOGUE &&
-                    detected.any { d -> textInsideBalloon(b.box, d) }
-            }
-        }
+        // Every OCR text region is eligible for translation. The only page-text
+        // exclusion happens before grouping in WatermarkFilter, so narration,
+        // SFX, open-art lettering and balloons are no longer silently discarded
+        // merely because BalloonFinder failed to recognize their surrounding shape.
+        // The old explicit outside-balloon switch remains accepted for callers
+        // but is no longer needed to unlock text.
+        val targetBubbles = bubbles.filter { it.text.isNotBlank() }
 
         if (settings.engine != EngineKind.LLM) {
             val result = machineTranslate(bitmap, targetBubbles, ocrResult.lang, settings, detected, onPartial = onPartial)
@@ -554,7 +565,7 @@ class TranslatePipeline(
         // Balloons detected in the pixels but unread by OCR carry no text; the
         // machine engines have nothing to work from and would render blanks.
         val dialogue = rowWiseOrder(
-            bubbles.filter { it.kind == BubbleKind.DIALOGUE && it.text.isNotBlank() }
+            bubbles.filter { it.text.isNotBlank() }
         )
         if (dialogue.isEmpty()) return PageResult(emptyList(), "Google", null)
 
@@ -697,7 +708,7 @@ class TranslatePipeline(
         // Anchored entries first: exact OCR geometry, AI text.
         val takenBoxes = ArrayList<Rect>()
         val takenText = HashSet<String>()
-        val anchored = pageBubbles.filter { it.id in ocrBubbles.indices && !it.sfx }.mapNotNull { v ->
+        val anchored = pageBubbles.filter { it.id in ocrBubbles.indices }.mapNotNull { v ->
             val anchor = ocrBubbles[v.id]
             if (!unclaimed.remove(anchor)) return@mapNotNull null
             takenBoxes.add(anchor.box)
@@ -715,7 +726,7 @@ class TranslatePipeline(
         // model's box count, and only where a detected balloon or region
         // backs it — a drifting box with no support paints text over art
         // nowhere near the balloon it belongs to, and is dropped.
-        val extras = pageBubbles.filter { it.id < 0 && !it.sfx }.mapNotNull { v ->
+        val extras = pageBubbles.filter { it.id < 0 }.mapNotNull { v ->
             var box = Rect(
                 v.nx * w / 1000,
                 v.ny * h / 1000,

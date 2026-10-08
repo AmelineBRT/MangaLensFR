@@ -155,7 +155,11 @@ class BubbleOverlayView(context: Context) : View(context) {
     // Do not filter the alpha mask: bitmap filtering can create partially
     // transparent edge pixels when the low-resolution mask is scaled to the
     // full-resolution balloon. Every interior pixel must remain hard opaque.
-    private val maskPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val maskPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        alpha = 255
+        isFilterBitmap = false
+        isDither = false
+    }
     private val outlinePaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
@@ -322,34 +326,16 @@ class BubbleOverlayView(context: Context) : View(context) {
         }
         val px = IntArray(w * h)
         var any = false
-        // Every detected interior pixel is fully opaque. We intentionally no
-        // longer leave a transparent boundary ring: that ring was exactly
-        // where source lettering could remain visible around the translation.
-        // No replacement outline is drawn, so the result stays clean.
-        // Fill the detected interior plus a one-cell safety expansion.
-        // The detector works at a coarse resolution; without this small
-        // expansion a source glyph sitting exactly on a cell boundary could
-        // survive the resampling and remain visible under the translation.
-        val expanded = BooleanArray(mask.size)
-        for (y in 0 until h) {
-            for (x in 0 until w) {
-                var on = mask[y * w + x]
-                if (!on) {
-                    for (dy in -1..1) for (dx in -1..1) {
-                        val nx = x + dx
-                        val ny = y + dy
-                        if (nx in 0 until w && ny in 0 until h && mask[ny * w + nx]) {
-                            on = true
-                            break
-                        }
-                    }
-                }
-                expanded[y * w + x] = on
-                if (on) any = true
+        // Use the detector's already hole-filled interior exactly as-is.
+        // Expanding by a whole analysis cell made the stamp spill outside the
+        // balloon on small/tapered shapes and could bleach artwork or the
+        // balloon outline. Every retained pixel is nevertheless a literal
+        // 0xFFFFFFFF pixel: there is no semi-transparent white in the stamp.
+        for (i in mask.indices) {
+            if (mask[i]) {
+                px[i] = 0xFFFFFFFF.toInt()
+                any = true
             }
-        }
-        for (i in expanded.indices) {
-            if (expanded[i]) px[i] = Color.WHITE or (0xFF shl 24)
         }
         if (!any) return null
         return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
