@@ -431,7 +431,7 @@ class TranslatePipeline(
         val targetBubbles = bubbles.filter { it.text.isNotBlank() }
 
         if (settings.engine != EngineKind.LLM) {
-            val result = machineTranslate(bitmap, targetBubbles, ocrResult.lang, settings, detected, onPartial = onPartial)
+            val result = machineTranslate(bitmap, targetBubbles, ocrResult.lang, settings, detected, translateOutsideBalloons, onPartial = onPartial)
             // The free and offline engines only ever see text on-device OCR
             // managed to read, and stylized vertical lettering routinely
             // defeats it. Balloon detection can still see those balloons, so
@@ -491,7 +491,7 @@ class TranslatePipeline(
             val fastJob = onPartial?.let {
                 launch {
                     val fast = runCatching {
-                        machineTranslate(bitmap, targetBubbles, ocrResult.lang, settings, detected, forceGoogle = true)
+                        machineTranslate(bitmap, targetBubbles, ocrResult.lang, settings, detected, translateOutsideBalloons, forceGoogle = true)
                     }.getOrNull()
                     if (fast != null && fast.bubbles.isNotEmpty() && !aiFinished) {
                         gate.withLock { draft = fast.bubbles }
@@ -568,6 +568,7 @@ class TranslatePipeline(
         lang: SourceLang,
         settings: AppSettings,
         detected: List<Balloon>,
+        translateOutsideBalloons: Boolean = false,
         forceGoogle: Boolean = false,
         onPartial: (suspend (PageResult) -> Unit)? = null,
     ): PageResult {
