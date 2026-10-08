@@ -96,6 +96,7 @@ class OcrEngine {
     }
 
     private fun recognizerFor(lang: SourceLang): TextRecognizer = when (lang) {
+        SourceLang.EN -> latin
         SourceLang.KO -> korean
         SourceLang.JA -> japanese
         SourceLang.ZH -> chinese
