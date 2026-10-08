@@ -75,8 +75,12 @@ class OverlayController(private val context: Context, private val listener: List
                 WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
                 WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
                 WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            // The window must remain transparent outside the cards, but
+            // its own layer must not be globally dimmed. Individual balloon
+            // pixels are made opaque by BubbleOverlayView.
             PixelFormat.TRANSLUCENT
         )
+        bubbleLp.alpha = 1f
         bubbleLp.gravity = Gravity.TOP or Gravity.START
         if (Build.VERSION.SDK_INT >= 28) {
             bubbleLp.layoutInDisplayCutoutMode =
