@@ -413,7 +413,7 @@ class TranslatePipeline(
         }
 
         if (settings.engine != EngineKind.LLM) {
-            val result = machineTranslate(bitmap, targetBubbles, ocrResult.lang, settings, detected, onPartial)
+            val result = machineTranslate(bitmap, targetBubbles, ocrResult.lang, settings, detected, onPartial = onPartial)
             // The free and offline engines only ever see text on-device OCR
             // managed to read, and stylized vertical lettering routinely
             // defeats it. Balloon detection can still see those balloons, so
