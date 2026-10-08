@@ -172,7 +172,6 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
     private var controller: OverlayController? = null
     private val ocr = OcrEngine()
     private val cache = TranslationCache()
-    private val pageReplay = PageReplayCache()
     // lazy: these need a Context, which a Service only has after construction
     private val glossary by lazy { GlossaryStore(this) }
     private val cast by lazy { CastBook(this) }
@@ -828,25 +827,6 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
                 var ahead: TranslatePipeline.Analysis? = null
                 val prep = takePrepared()
                 if (prep != null) {
-                    // The preparation job may already be running OCR, but the
-                    // thumbnail is cheap. Check replay BEFORE awaiting that job:
-                    // otherwise scroll-back pages lose the whole benefit of the
-                    // cache because preparation has already committed us to OCR.
-                    if (!translateOutsideBalloons) {
-                        val preparedThumb = FrameStability.grayThumbOf(prep.bitmap)
-                        val replay = pageReplay.get(preparedThumb, capW, capH)
-                        if (replay != null && replay.isNotEmpty()) {
-                            prep.job.cancel()
-                            retireLater(prep.bitmap)
-                            shownThumb = preparedThumb
-                            lastShown = replay
-                            paintCards(replay)
-                            state = State.SHOWING
-                            setPill("↩ ${replay.size} · déjà traduit", 1400)
-                            works.noteTranslated(System.currentTimeMillis(), glossary.snapshot().keys)
-                            return@launch
-                        }
-                    }
                     setPill("traduction en cours…")
                     val read = try {
                         prep.job.await()
@@ -875,20 +855,6 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
                         return@launch
                     }
                     bmp = fresh
-                }
-
-                if (ahead == null && !translateOutsideBalloons && bmp != null) {
-                    val currentThumb = FrameStability.grayThumbOf(bmp!!)
-                    val replay = pageReplay.get(currentThumb, capW, capH)
-                    if (replay != null && replay.isNotEmpty()) {
-                        shownThumb = currentThumb
-                        lastShown = replay
-                        paintCards(replay)
-                        state = State.SHOWING
-                        setPill("↩ ${replay.size} · déjà traduit", 1400)
-                        works.noteTranslated(System.currentTimeMillis(), glossary.snapshot().keys)
-                        return@launch
-                    }
                 }
 
                 val analysis: TranslatePipeline.Analysis = if (ahead != null) {
@@ -931,10 +897,6 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
                 suppressUntil = SystemClock.uptimeMillis() + 500
                 paintCards(shown)
                 state = State.SHOWING
-                // Remember the finished translation for later scroll-backs.
-                if (shown.isNotEmpty() && shownThumb != null) {
-                    pageReplay.put(shownThumb!!, shown)
-                }
                 // A page with dialogue keeps the current work aactif and feeds it
                 // the names that identify it; a run of pages without any means
                 // the reader has left the story — an index, a cover, a menu.
