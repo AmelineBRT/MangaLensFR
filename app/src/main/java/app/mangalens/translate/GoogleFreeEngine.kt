@@ -94,6 +94,7 @@ class GoogleFreeEngine : TranslationEngine {
             // once (Spanish, English) reach here carrying no CJK at all, and
             // pinning them to a CJK source makes Google echo them back.
             val sl = if (Script.cjkCount(text) == 0) "auto" else when (lang) {
+                SourceLang.EN -> "en"
                 SourceLang.KO -> "ko"
                 SourceLang.JA -> "ja"
                 SourceLang.ZH -> "zh-CN"
