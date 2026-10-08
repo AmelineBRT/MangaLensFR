@@ -11,6 +11,7 @@ import app.mangalens.ocr.BubbleKind
 import app.mangalens.ocr.OcrEngine
 import app.mangalens.ocr.OcrLine
 import app.mangalens.ocr.Script
+import app.mangalens.ocr.WatermarkFilter
 import app.mangalens.ocr.TextAnchor
 import app.mangalens.overlay.RenderBubble
 import app.mangalens.settings.AiVisionMode
@@ -146,18 +147,22 @@ class TranslatePipeline(
             }
             val firstPass = ocrJob.await()
             val scan = scanJob.await()
+            val filteredLines = WatermarkFilter.filter(
+                firstPass.lines, scan.balloons.map { it.box }, bitmap.width, bitmap.height
+            )
+            val cleanOcr = firstPass.copy(lines = filteredLines)
             val detected = scan.balloons.filter { b ->
-                !b.partial || firstPass.lines.any { l ->
+                !b.partial || cleanOcr.lines.any { l ->
                     Script.clean(l.text).length >= 2 &&
                         b.box.contains(l.box.centerX(), l.box.centerY())
                 }
             }
             val balloons = detected.map { it.box }
             val bubbles = BubbleGrouper.group(
-                firstPass.lines, bitmap.height, ignoreTop, ignoreBottom, firstPass.lang, exclusions,
+                cleanOcr.lines, bitmap.height, ignoreTop, ignoreBottom, cleanOcr.lang, exclusions,
                 balloons, includeEmptyBalloons = false, panels = scan.panels,
             )
-            val anchorLines = firstPass.lines.mapNotNull { l ->
+            val anchorLines = cleanOcr.lines.mapNotNull { l ->
                 val cleaned = Script.clean(l.text)
                 if (cleaned.length < 2) return@mapNotNull null
                 if (l.box.bottom <= ignoreTop || l.box.top >= bitmap.height - ignoreBottom) return@mapNotNull null
@@ -169,7 +174,7 @@ class TranslatePipeline(
                     " · panels " + scan.panels.size + " · regions " + bubbles.size
             else null
             return@coroutineScope Analysis(
-                bitmap, firstPass, detected, scan.panels, bubbles, anchorLines,
+                bitmap, cleanOcr, detected, scan.panels, bubbles, anchorLines,
                 ignoreTop, ignoreBottom, exclusions, false, diag,
             )
         }
@@ -183,13 +188,19 @@ class TranslatePipeline(
         }
         val firstPass = ocrJob.await()
         val scan = scanJob.await()
+        val filteredLines = WatermarkFilter.filter(
+            firstPass.lines, scan.balloons.map { it.box }, bitmap.width, bitmap.height
+        )
+        val cleanOcr = firstPass.copy(lines = filteredLines)
 
         // ML Kit misses small and stylized lettering it would read fine at
         // twice the size. A balloon it read nothing in is cropped from the
         // full-resolution frame, enlarged, and read again on its own.
-        val rereads = reread(bitmap, scan.balloons, firstPass, settings)
+        val rereads = reread(bitmap, scan.balloons, cleanOcr, settings)
         val lines = if (rereads.isEmpty()) firstPass.lines else firstPass.lines + rereads
-        val ocrResult = OcrEngine.Result(lines, firstPass.lang)
+        val ocrResult = OcrEngine.Result(
+            WatermarkFilter.filter(lines, scan.balloons.map { it.box }, bitmap.width, bitmap.height), firstPass.lang
+        )
 
         // Use Vision only when it has a concrete job to do: an unread
         // detected balloon or very poor OCR coverage. On a normal page this
@@ -213,7 +224,7 @@ class TranslatePipeline(
         // can pass every shape test, and an empty partial region would be
         // handed to the vision model as a balloon to read.
         val detected = scan.balloons.filter { b ->
-            !b.partial || lines.any { l ->
+            !b.partial || ocrResult.lines.any { l ->
                 Script.clean(l.text).length >= 2 && b.box.contains(l.box.centerX(), l.box.centerY())
             }
         }
