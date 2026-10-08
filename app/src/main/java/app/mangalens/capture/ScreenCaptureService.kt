@@ -174,6 +174,9 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
     private var controller: OverlayController? = null
     private val ocr = OcrEngine()
     private val cache = TranslationCache()
+    // Replays recently translated pages before OCR/translation on scroll-back.
+    // The cache verifies the page pixels and vertical alignment before replay.
+    private val pageReplay = PageReplayCache(4)
     // lazy: these need a Context, which a Service only has after construction
     private val glossary by lazy { GlossaryStore(this) }
     private val cast by lazy { CastBook(this) }
@@ -859,6 +862,23 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
                     bmp = fresh
                 }
 
+                // A scroll-back to a page already translated should not pay the
+                // OCR + translation cost again. The replay cache verifies the
+                // current page pixels and vertical alignment before accepting it.
+                val replayThumb = shownThumb ?: FrameStability.grayThumbOf(bmp ?: run {
+                    state = State.SCANNING
+                    return@launch
+                })
+                val replay = pageReplay.get(replayThumb, capW, capH)
+                if (replay != null) {
+                    shownThumb = replayThumb
+                    lastShown = replay
+                    suppressUntil = SystemClock.uptimeMillis() + 500
+                    paintCards(replay)
+                    state = State.SHOWING
+                    setPill("✓ " + replay.size + " · cache", 1600)
+                    return@launch
+                }
                 val analysis: TranslatePipeline.Analysis = if (ahead != null) {
                     ahead
                 } else {
@@ -898,6 +918,8 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
                 lastShown = shown
                 suppressUntil = SystemClock.uptimeMillis() + 500
                 paintCards(shown)
+                // Keep the finished page for immediate scroll-back replay.
+                shownThumb?.let { pageReplay.put(it, shown) }
                 state = State.SHOWING
                 // A page with dialogue keeps the current work aactif and feeds it
                 // the names that identify it; a run of pages without any means
