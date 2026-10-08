@@ -319,25 +319,20 @@ class BubbleOverlayView(context: Context) : View(context) {
         }
         val px = IntArray(w * h)
         var any = false
-        // Keep only the one-cell boundary ring transparent so the original
-        // balloon outline remains visible. Every other detected interior
-        // pixel is fully opaque, so original lettering cannot show through.
-        for (y in 1 until h - 1) {
-            for (x in 1 until w - 1) {
-                val i = y * w + x
-                if (!mask[i]) continue
-                if (!mask[i - 1] || !mask[i + 1] || !mask[i - w] || !mask[i + w]) continue
-                // Balloon cleaning is pure opaque white. Sampling the old page
-                // made the replacement look transparent even though its alpha
-                // was 255. Keep the one-cell ring untouched so no new contour
-                // is drawn by MangaLensFR.
-                px[i] = Color.WHITE
-                any = true
-            }
+        // Every detected interior pixel is fully opaque. We intentionally no
+        // longer leave a transparent boundary ring: that ring was exactly
+        // where source lettering could remain visible around the translation.
+        // No replacement outline is drawn, so the result stays clean.
+        for (i in mask.indices) {
+            if (!mask[i]) continue
+            px[i] = colors?.get(i) ?: Color.WHITE
+            px[i] = Color.argb(255, Color.red(px[i]), Color.green(px[i]), Color.blue(px[i]))
+            any = true
         }
         if (!any) return null
         return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
     }
+
     /**
      * Clean-and-typeset: fill through the mask, then set the translation the
      * way a letterer would — inside the balloon's actual shape. The mask is
