@@ -22,7 +22,7 @@ import app.mangalens.settings.SourceLang
 object BalloonMerge {
 
     /** A fragment counts as inside a balloon when most of it lies within. */
-    private const val MIN_CONTAINMENT = 0.6f
+    private const val MIN_CONTAINMENT = 0.75f
 
     /**
      * @param includeEmpty add regions for balloons holding no readable text.
