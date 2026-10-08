@@ -68,6 +68,7 @@ class VisionLlmEngine(
             // "region 7" is visible rather than inferred from coordinates.
             val jpegB64 = PageMarkup.encodeMarkedPage(bitmap, anchors, settings.dataSaver)
             val langHint = when (lang) {
+                SourceLang.EN -> "English"
                 SourceLang.KO -> "Korean"
                 SourceLang.JA -> "Japanese"
                 SourceLang.ZH -> "Chinese"
