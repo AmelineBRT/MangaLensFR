@@ -542,6 +542,7 @@ class TranslatePipeline(
     }
 
     // ---- machine engines (Google / on-device), also the AI fast path ----
+    // v0.11 progressive rendering
 
     private suspend fun machineTranslate(
         bitmap: Bitmap,
