@@ -584,6 +584,7 @@ class TranslatePipeline(
             }
         }
 
+        return PageResult(rendered.toList(), label, note)
     }
 
     // ---- AI text path (small payloads — slow-internet friendly) ----
