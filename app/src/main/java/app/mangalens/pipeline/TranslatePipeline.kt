@@ -556,21 +556,34 @@ class TranslatePipeline(
         // Balloons detected in the pixels but unread by OCR carry no text; the
         // machine engines have nothing to work from and would render blanks.
         val dialogue = bubbles.filter { it.kind == BubbleKind.DIALOGUE && it.text.isNotBlank() }
-        val outcome = if (dialogue.isEmpty()) {
-            TranslationService.Outcome(emptyList(), "Google")
-        } else {
-            translation.translate(dialogue.map { it.text }, lang, settings, forceGoogle = forceGoogle)
+        if (dialogue.isEmpty()) return PageResult(emptyList(), "Google", null)
+
+        val rendered = ArrayList<RenderBubble>()
+        var label = "Google"
+        var note: String? = null
+
+        // Publish each bubble as soon as its translation returns instead of
+        // waiting for the whole page.
+        for (bubble in dialogue) {
+            val outcome = translation.translate(
+                listOf(bubble.text),
+                lang,
+                settings,
+                kinds = listOf(bubble.kind),
+                runs = listOf(bubble.runId),
+                parts = listOf(bubble.runPart),
+                forceGoogle = forceGoogle,
+            )
+            label = outcome.engineLabel
+            note = outcome.note ?: note
+            val translated = outcome.texts.firstOrNull().orEmpty()
+            val gated = JunkFilter.accept(bubble.text, translated, lang)
+            if (gated != null) {
+                rendered.add(renderBubble(bitmap, bubble.box, gated, bubble.text, bubble.vertical, bubble.kind, detected))
+                onPartial?.invoke(PageResult(rendered.toList(), label, note))
+            }
         }
-        val texts = HashMap<Bubble, String>()
-        dialogue.forEachIndexed { i, b ->
-            val gated = JunkFilter.accept(b.text, outcome.texts.getOrElse(i) { "" }, lang)
-            if (gated != null) texts[b] = gated
-        }
-        val rendered = bubbles.mapNotNull { b ->
-            val t = texts[b] ?: return@mapNotNull null
-            renderBubble(bitmap, b.box, t, b.text, b.vertical, b.kind, detected)
-        }
-        return PageResult(rendered, outcome.engineLabel, outcome.note)
+
     }
 
     // ---- AI text path (small payloads — slow-internet friendly) ----
