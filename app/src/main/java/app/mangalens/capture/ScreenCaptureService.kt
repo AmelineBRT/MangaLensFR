@@ -188,7 +188,7 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
      */
     private val works by lazy { WorkMemory(this, glossary, cast) }
     private val translation by lazy { TranslationService(cache, glossary, cast) }
-    private val pipeline by lazy { TranslatePipeline(ocr, translation, cache, glossary, cast) }
+    private val pipeline by lazy { TranslatePipeline(ocr, translation, cache, glossary, cast, this) }
 
     private val frameLock = Any()
     private var latestBitmap: Bitmap? = null

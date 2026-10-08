@@ -5,8 +5,6 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import android.graphics.PorterDuff
-import android.graphics.PorterDuffColorFilter
 import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Typeface
@@ -71,8 +69,6 @@ class BubbleOverlayView(context: Context) : View(context) {
         val card: RectF? = null,
         val mask: Bitmap? = null,
         val maskDst: RectF? = null,
-        val tint: PorterDuffColorFilter? = null,
-        val outline: Bitmap? = null,
         /**
          * Rectangle wiped to the sampled page color before the card paints —
          * the original lettering of an on-art vertical column, hidden without
@@ -320,16 +316,22 @@ class BubbleOverlayView(context: Context) : View(context) {
         val h = balloon.maskH
         val mask = balloon.mask
         if (w < 1 || h < 1 || mask.size < w * h) return null
-
-        // The cleaning stamp is deliberately pure white and fully opaque
-        // inside the detected balloon. Never reuse a sampled/gradient fill here:
-        // the reader must not see the original lettering or artwork through the
-        // translation background.
         val px = IntArray(w * h)
         var any = false
-        for (i in mask.indices) {
-            if (!mask[i]) continue
-            px[i] = Color.WHITE
+        val fallback = if (balloon.inverted) Color.rgb(20, 20, 24) else Color.WHITE
+        for (i in 0 until w * h) {
+            if (!mask[i]) {
+                px[i] = 0
+                continue
+            }
+            val source = if (fill != null && fill.width == w && fill.height == h) {
+                fill.getPixel(i % w, i / w)
+            } else {
+                fallback
+            }
+            // The mask is the segmentation boundary. Inside is always alpha 255;
+            // outside is transparent. No erosion, no synthetic outline.
+            px[i] = Color.argb(255, Color.red(source), Color.green(source), Color.blue(source))
             any = true
         }
         if (!any) return null
@@ -446,8 +448,6 @@ class BubbleOverlayView(context: Context) : View(context) {
             // The stamp is fully opaque. The original boundary is painted
             // separately so the cleaning can reach every interior pixel.
             // No outline is reconstructed or painted by MangaLensFR.
-            tint = null,
-            outline = b.outline,
         )
     }
 
@@ -665,11 +665,8 @@ class BubbleOverlayView(context: Context) : View(context) {
                 // window itself is at alpha 1.0, so the white stamp completely
                 // replaces the pixels below it.
                 maskPaint.alpha = 255
-                maskPaint.colorFilter = p.tint
+                maskPaint.colorFilter = null
                 canvas.drawBitmap(p.mask, null, p.maskDst, maskPaint)
-                p.outline?.let { outline ->
-                    canvas.drawBitmap(outline, null, p.maskDst, outlinePaint)
-                }
             } else if (p.card != null) {
                 p.wipe?.let { wipe ->
                     bgPaint.color = Color.argb(

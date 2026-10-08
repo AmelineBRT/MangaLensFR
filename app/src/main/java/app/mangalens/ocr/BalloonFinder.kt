@@ -1,5 +1,6 @@
 package app.mangalens.ocr
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Rect
 import kotlin.math.max
@@ -205,7 +206,8 @@ object BalloonFinder {
         ignoreTopPx: Int = 0,
         ignoreBottomPx: Int = 0,
         exclusions: List<Rect> = emptyList(),
-    ): List<Rect> = findDetailed(bitmap, ignoreTopPx, ignoreBottomPx, exclusions).map { it.box }
+        context: Context? = null,
+    ): List<Rect> = findDetailed(bitmap, ignoreTopPx, ignoreBottomPx, exclusions, context).map { it.box }
 
     /**
      * Detects balloon regions, in full-resolution page coordinates, each
@@ -218,7 +220,8 @@ object BalloonFinder {
         ignoreTopPx: Int = 0,
         ignoreBottomPx: Int = 0,
         exclusions: List<Rect> = emptyList(),
-    ): List<Balloon> = analyze(bitmap, ignoreTopPx, ignoreBottomPx, exclusions).balloons
+        context: Context? = null,
+    ): List<Balloon> = analyze(bitmap, ignoreTopPx, ignoreBottomPx, exclusions, context).balloons
 
     /** Balloons and panels from one binarization of the page. */
     fun analyze(
@@ -226,6 +229,7 @@ object BalloonFinder {
         ignoreTopPx: Int = 0,
         ignoreBottomPx: Int = 0,
         exclusions: List<Rect> = emptyList(),
+        context: Context? = null,
     ): PageScan {
         val scale = min(1f, WORK_DIM.toFloat() / max(bitmap.width, bitmap.height))
         val w = max(1, (bitmap.width * scale).toInt())
@@ -233,6 +237,7 @@ object BalloonFinder {
         if (w < 16 || h < 16) return PageScan(emptyList(), emptyList())
 
         val planes = Planes.of(bitmap, w, h)
+
         val n = w * h
         val light = BooleanArray(n)
         val dark = BooleanArray(n)
@@ -260,6 +265,37 @@ object BalloonFinder {
             val flat = hi - lo <= FLAT_CONTRAST
             flatMid[i] = flat && mean in DARK until LIGHT
             flatDim[i] = flat && mean in (INVERTED_INTERIOR + 1) until LIGHT
+        }
+        // v0.13 primary path: dual-label YOLO segmentation (bubble + text).
+        // The model mask, not a rectangle or an inferred outline, becomes the
+        // source of truth for the bubble. The deterministic detector below is
+        // retained only as a first-run/device fallback while the model is absent.
+        if (context != null) {
+            val model = DualSegmentationDetector.get(context)
+            if (model != null) {
+                val modelDetections = runCatching { model.detect(bitmap) }.getOrNull()
+                if (modelDetections != null) {
+                    val modelBalloons = modelDetections
+                        .asSequence()
+                        .filter { it.classId == 0 }
+                        .filter { it.box.width() >= 10 && it.box.height() >= 10 }
+                        .filter { it.box.bottom > ignoreTopPx && it.box.top < bitmap.height - ignoreBottomPx }
+                        .filter { d -> exclusions.none { Rect.intersects(it, d.box) } }
+                        .mapNotNull { modelBalloon(bitmap, it) }
+                        .let { dedupeModelBalloons(it.toList()) }
+                    if (modelBalloons.isNotEmpty()) {
+                        val panels = PageLayout.panels(paper, solidDark, edge, w, h).map { r ->
+                            Rect(
+                                (r.left / scale).toInt(),
+                                (r.top / scale).toInt(),
+                                (r.right / scale).toInt().coerceAtMost(bitmap.width),
+                                (r.bottom / scale).toInt().coerceAtMost(bitmap.height),
+                            )
+                        }
+                        return PageScan(modelBalloons, panels)
+                    }
+                }
+            }
         }
         // The light flood may only enter paper: a cell holding any ink at
         // all is a wall. Lettering fattens by up to a cell each side, which
@@ -315,6 +351,54 @@ object BalloonFinder {
             )
         }
         return PageScan(balloons, panels)
+    }
+
+    private fun modelBalloon(bitmap: Bitmap, d: DualSegmentationDetector.Detection): Balloon? {
+        val mask = d.mask ?: return null
+        if (mask.isEmpty() || d.maskW <= 0 || d.maskH <= 0) return null
+        val box = d.box
+        var dark = 0
+        var light = 0
+        var sampled = 0
+        val sx = maxOf(1, d.maskW / 32)
+        val sy = maxOf(1, d.maskH / 32)
+        var y = 0
+        while (y < d.maskH) {
+            var x = 0
+            while (x < d.maskW) {
+                if (mask[y * d.maskW + x]) {
+                    val px = (box.left + ((x + 0.5f) * box.width() / d.maskW)).toInt().coerceIn(0, bitmap.width - 1)
+                    val py = (box.top + ((y + 0.5f) * box.height() / d.maskH)).toInt().coerceIn(0, bitmap.height - 1)
+                    val p = bitmap.getPixel(px, py)
+                    val lum = (android.graphics.Color.red(p) * 299 + android.graphics.Color.green(p) * 587 + android.graphics.Color.blue(p) * 114) / 1000
+                    if (lum < 120) dark++ else light++
+                    sampled++
+                }
+                x += sx
+            }
+            y += sy
+        }
+        val inverted = sampled > 0 && dark > light * 2
+        val partial = box.left <= 1 || box.top <= 1 || box.right >= bitmap.width - 1 || box.bottom >= bitmap.height - 1
+        return Balloon(Rect(box), d.maskW, d.maskH, mask, inverted, partial)
+    }
+
+    private fun dedupeModelBalloons(input: List<Balloon>): List<Balloon> {
+        val kept = ArrayList<Balloon>()
+        for (b in input.sortedByDescending { it.box.width().toLong() * it.box.height() }) {
+            if (kept.none { duplicateBalloon(it.box, b.box) }) kept.add(b)
+        }
+        return kept.sortedWith(compareBy({ it.box.top }, { it.box.left }))
+    }
+
+    private fun duplicateBalloon(a: Rect, b: Rect): Boolean {
+        val ix = maxOf(0, minOf(a.right, b.right) - maxOf(a.left, b.left))
+        val iy = maxOf(0, minOf(a.bottom, b.bottom) - maxOf(a.top, b.top))
+        if (ix <= 0 || iy <= 0) return false
+        val inter = ix.toLong() * iy
+        val minArea = minOf(a.width().toLong() * a.height(), b.width().toLong() * b.height())
+        val union = a.width().toLong() * a.height() + b.width().toLong() * b.height() - inter
+        return inter.toFloat() / minArea >= 0.85f || inter.toFloat() / union >= 0.65f
     }
 
     /**
