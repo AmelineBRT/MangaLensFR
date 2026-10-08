@@ -50,6 +50,7 @@ class OcrEngine {
         pinned?.let { lang ->
             val lines = run(recognizerFor(lang), bitmap)
             val strength = when (lang) {
+                SourceLang.EN -> lines.sumOf { it.text.count(Char::isLetter) }
                 SourceLang.KO, SourceLang.JA, SourceLang.ZH -> lines.sumOf { Script.cjkCount(it.text) }
                 SourceLang.AUTO -> lines.sumOf { it.text.count(Char::isLetter) }
             }
@@ -143,6 +144,7 @@ class OcrEngine {
 
         val winnerText = when (best.first) {
             SourceLang.AUTO -> latinText
+            SourceLang.EN -> latinText
             SourceLang.KO -> koText
             SourceLang.JA -> jaText
             SourceLang.ZH -> zhText
