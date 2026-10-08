@@ -55,6 +55,7 @@ class TranslatePipeline(
     private val cache: TranslationCache,
     private val glossary: GlossaryStore? = null,
     private val cast: CastBook? = null,
+    private val context: Context? = null,
 ) {
 
     data class PageResult(
