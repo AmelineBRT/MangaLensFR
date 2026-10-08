@@ -77,7 +77,7 @@ class PageScan(val balloons: List<Balloon>, val panels: List<Rect>)
 object BalloonFinder {
 
     /** Analysis resolution. Balloons are large features; detail buys nothing. */
-    private const val WORK_DIM = 640
+    private const val WORK_DIM = 768
 
     /** Mean luminance at or above this is balloon interior rather than ink or tone. */
     private const val LIGHT = 200
@@ -109,7 +109,7 @@ object BalloonFinder {
      * wall a light flood stops at, and it is what keeps a hairline outline a
      * wall at any resolution.
      */
-    private const val PAPER_FLOOR = 170
+    private const val PAPER_FLOOR = 145
 
     /**
      * A cell whose lightest pixel is above this is not the inside of a dark
@@ -128,7 +128,7 @@ object BalloonFinder {
     private const val FLAT_CONTRAST = 48
 
     /** Share of a balloon's interior that may be art-like before it is rejected. */
-    private const val MAX_ART = 0.12f
+    private const val MAX_ART = 0.16f
 
     /** Fractions of the analysed page a balloon may occupy. */
     private const val MIN_AREA = 0.0012f
@@ -163,7 +163,7 @@ object BalloonFinder {
     private const val RAW_FILL_SLACK = 0.5f
 
     /** Share of the interior that must be lettering for a blob to be a balloon. */
-    private const val MIN_INK = 0.02f
+    private const val MIN_INK = 0.015f
     private const val MAX_INK = 0.60f
 
     /**
