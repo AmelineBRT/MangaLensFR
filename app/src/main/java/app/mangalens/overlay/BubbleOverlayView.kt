@@ -144,7 +144,7 @@ class BubbleOverlayView(context: Context) : View(context) {
      * on every call, and [place] runs on each translated page.
      */
     private val dialogueFace: Typeface =
-        font(R.font.comic_neue_bold) ?: Typeface.create("sans-serif-medium", Typeface.NORMAL)
+        font(R.font.mochiy_pop_one) ?: Typeface.create("sans-serif-medium", Typeface.NORMAL)
     private val sfxFace: Typeface =
         font(R.font.comic_neue_bold_italic) ?: Typeface.create("sans-serif-condensed", Typeface.BOLD_ITALIC)
 
