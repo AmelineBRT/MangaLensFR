@@ -5,8 +5,6 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import android.graphics.PorterDuff
-import android.graphics.PorterDuffColorFilter
 import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Typeface
@@ -69,7 +67,6 @@ class BubbleOverlayView(context: Context) : View(context) {
         val card: RectF? = null,
         val mask: Bitmap? = null,
         val maskDst: RectF? = null,
-        val tint: PorterDuffColorFilter? = null,
         /**
          * Rectangle wiped to the sampled page color before the card paints —
          * the original lettering of an on-art vertical column, hidden without
@@ -277,7 +274,7 @@ class BubbleOverlayView(context: Context) : View(context) {
         if (b.translated.isBlank()) return null
         val balloon = b.balloon
         if (balloon != null) {
-            val stamp = opaqueStamp(balloon)
+            val stamp = opaqueStamp(balloon, b.fill, b.bgColor)
             if (stamp != null) return placeClean(b, balloon, stamp)
         }
         return placeCard(b, occupied)
@@ -308,19 +305,30 @@ class BubbleOverlayView(context: Context) : View(context) {
      * redraw: the original lettering must be covered completely, while the
      * actual balloon border remains untouched because it is outside this mask.
      */
-    private fun opaqueStamp(balloon: Balloon): Bitmap? {
+    private fun opaqueStamp(balloon: Balloon, fill: Bitmap?, fallbackColor: Int): Bitmap? {
         val w = balloon.maskW
         val h = balloon.maskH
         val mask = balloon.mask
         if (w < 1 || h < 1 || mask.size < w * h) return null
 
-        // Pure white and fully opaque. The detector's mask is hole-filled, so
-        // source glyphs are not spared as holes in the cleaning layer.
+        // The detector's mask is hole-filled: every pixel inside the actual
+        // balloon is painted, including the pixels occupied by the source
+        // lettering. No erosion, transparency or source-outline reconstruction.
+        val source = fill?.takeIf { it.width == w && it.height == h }
+        val fillPixels = source?.let { f ->
+            IntArray(w * h).also { f.getPixels(it, 0, w, 0, 0, w, h) }
+        }
+        val opaque = Color.rgb(
+            Color.red(fallbackColor),
+            Color.green(fallbackColor),
+            Color.blue(fallbackColor),
+        )
         val px = IntArray(w * h)
         var any = false
         for (i in mask.indices) {
             if (!mask[i]) continue
-            px[i] = Color.WHITE
+            val c = fillPixels?.get(i) ?: opaque
+            px[i] = c or (0xFF shl 24)
             any = true
         }
         if (!any) return null
@@ -434,11 +442,6 @@ class BubbleOverlayView(context: Context) : View(context) {
             bg = fill,
             mask = stamp,
             maskDst = RectF(box),
-            // The stamp is fully opaque. The original boundary is painted
-            // separately so the cleaning can reach every interior pixel.
-            // No outline is reconstructed or painted by MangaLensFR.
-            tint = null,
-            outline = b.outline,
         )
     }
 
@@ -654,13 +657,11 @@ class BubbleOverlayView(context: Context) : View(context) {
                 // balloon must never inherit alpha from the source lettering.
                 // The bitmap contains only 0/255 alpha values and the
                 // window itself is at alpha 1.0, so the white stamp completely
-                // replaces the pixels below it.
+                // The stamp is already ARGB-opaque. Do not redraw or synthesize
+                // the source outline: that was the artificial contour seen in 0.12.0.
                 maskPaint.alpha = 255
-                maskPaint.colorFilter = p.tint
+                maskPaint.colorFilter = null
                 canvas.drawBitmap(p.mask, null, p.maskDst, maskPaint)
-                p.outline?.let { outline ->
-                    canvas.drawBitmap(outline, null, p.maskDst, outlinePaint)
-                }
             } else if (p.card != null) {
                 p.wipe?.let { wipe ->
                     bgPaint.color = Color.argb(
