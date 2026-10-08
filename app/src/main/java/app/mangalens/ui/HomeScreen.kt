@@ -549,6 +549,9 @@ private fun LectureCard(settings: AppSettings, repo: SettingsRepository) {
                 Chip("Auto", settings.sourceLang == SourceLang.AUTO) {
                     scope.launch { repo.setSourceLang(SourceLang.AUTO) }
                 }
+                Chip("English", settings.sourceLang == SourceLang.EN) {
+                    scope.launch { repo.setSourceLang(SourceLang.EN) }
+                }
                 Chip("한국어", settings.sourceLang == SourceLang.KO) {
                     scope.launch { repo.setSourceLang(SourceLang.KO) }
                 }
