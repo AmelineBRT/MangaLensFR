@@ -162,7 +162,7 @@ class TranslatePipeline(
                 cleanOcr.lines, bitmap.height, ignoreTop, ignoreBottom, cleanOcr.lang, exclusions,
                 balloons, includeEmptyBalloons = false, panels = scan.panels,
             )
-            val bubbles = includeAllOcrLines(groupedBubbles, cleanOcr.lines)
+            val bubbles = groupedBubbles
             val anchorLines = cleanOcr.lines.mapNotNull { l ->
                 val cleaned = Script.clean(l.text)
                 if (cleaned.length < 2) return@mapNotNull null
@@ -384,9 +384,14 @@ class TranslatePipeline(
             val f: suspend (PageResult) -> Unit = { pr -> emit(pr.copy(bubbles = soleClaimants(pr.bubbles))) }
             f
         }
+        val dispatchBubbles = if (translateOutsideBalloons) {
+            includeAllOcrLines(bubbles, ocrResult.lines)
+        } else {
+            bubbles
+        }
         val raw = dispatch(
             bitmap, settings, analysis.exclusions, wrapped,
-            ocrResult, bubbles, detected, analysis.anchorLines, analysis.ignoreTop, analysis.ignoreBottom, useVision,
+            ocrResult, dispatchBubbles, detected, analysis.anchorLines, analysis.ignoreTop, analysis.ignoreBottom, useVision,
             translateOutsideBalloons,
         )
         val result = raw.copy(bubbles = soleClaimants(raw.bubbles))
@@ -565,7 +570,7 @@ class TranslatePipeline(
         // Balloons detected in the pixels but unread by OCR carry no text; the
         // machine engines have nothing to work from and would render blanks.
         val dialogue = rowWiseOrder(
-            bubbles.filter { it.text.isNotBlank() }
+            bubbles.filter { it.text.isNotBlank() && (translateOutsideBalloons || it.kind != BubbleKind.SFX) }
         )
         if (dialogue.isEmpty()) return PageResult(emptyList(), "Google", null)
 
