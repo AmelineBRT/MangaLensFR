@@ -34,6 +34,7 @@ class MlKitEngine : TranslationEngine {
 
     private suspend fun translatorFor(lang: SourceLang): Translator {
         val code = when (lang) {
+            SourceLang.EN -> TranslateLanguage.ENGLISH
             SourceLang.KO -> TranslateLanguage.KOREAN
             SourceLang.JA -> TranslateLanguage.JAPANESE
             SourceLang.ZH -> TranslateLanguage.CHINESE
