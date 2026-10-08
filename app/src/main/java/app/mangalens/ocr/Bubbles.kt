@@ -181,7 +181,7 @@ object BubbleGrouper {
         val area = box.width().toLong() * box.height()
         if (area <= 0L) return -1
         var best = -1
-        var bestShare = 0.65f
+        var bestShare = 0.50f
         for ((i, balloon) in balloons.withIndex()) {
             val ix = min(box.right, balloon.right) - max(box.left, balloon.left)
             val iy = min(box.bottom, balloon.bottom) - max(box.top, balloon.top)
