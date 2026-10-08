@@ -327,7 +327,11 @@ class BubbleOverlayView(context: Context) : View(context) {
                 val i = y * w + x
                 if (!mask[i]) continue
                 if (!mask[i - 1] || !mask[i + 1] || !mask[i - w] || !mask[i + w]) continue
-                px[i] = if (colors != null) colors[i] or (0xFF shl 24) else Color.WHITE
+                // Balloon cleaning is pure opaque white. Sampling the old page
+                // made the replacement look transparent even though its alpha
+                // was 255. Keep the one-cell ring untouched so no new contour
+                // is drawn by MangaLensFR.
+                px[i] = Color.WHITE
                 any = true
             }
         }
@@ -443,8 +447,9 @@ class BubbleOverlayView(context: Context) : View(context) {
             maskDst = RectF(box),
             // The stamp is fully opaque. The original boundary is painted
             // separately so the cleaning can reach every interior pixel.
+            // No outline is reconstructed or painted by MangaLensFR.
             tint = null,
-            outline = b.outline,
+            outline = null,
         )
     }
 
@@ -662,9 +667,7 @@ class BubbleOverlayView(context: Context) : View(context) {
                 maskPaint.colorFilter = p.tint
                 maskPaint.alpha = 255
                 maskPaint.colorFilter = p.tint
-                canvas.drawBitmap(p.mask, null, p.maskDst, maskPaint)
-                p.outline?.let { canvas.drawBitmap(it, null, p.maskDst, outlinePaint) }
-            } else if (p.card != null) {
+                canvas.drawBitmap(p.mask, null, p.maskDst, maskPaint)            } else if (p.card != null) {
                 p.wipe?.let { wipe ->
                     bgPaint.color = Color.argb(
                         255, Color.red(p.bg), Color.green(p.bg), Color.blue(p.bg)
