@@ -69,8 +69,6 @@ class BubbleOverlayView(context: Context) : View(context) {
         val card: RectF? = null,
         val mask: Bitmap? = null,
         val maskDst: RectF? = null,
-        val tint: PorterDuffColorFilter? = null,
-        val outline: Bitmap? = null,
         /**
          * Rectangle wiped to the sampled page color before the card paints —
          * the original lettering of an on-art vertical column, hidden without
@@ -450,8 +448,6 @@ class BubbleOverlayView(context: Context) : View(context) {
             // The stamp is fully opaque. The original boundary is painted
             // separately so the cleaning can reach every interior pixel.
             // No outline is reconstructed or painted by MangaLensFR.
-            tint = null,
-            outline = b.outline,
         )
     }
 
