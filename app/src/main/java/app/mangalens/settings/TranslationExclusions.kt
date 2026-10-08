@@ -17,7 +17,7 @@ class TranslationExclusions(context: Context) {
     fun add(rect: Rect, width: Int, height: Int) {
         if (width <= 0 || height <= 0) return
         val p = listOf(rect.left * 1000 / width, rect.top * 1000 / height, rect.right * 1000 / width, rect.bottom * 1000 / height)
-        val raw = prefs.getStringSet("rects", emptySet()).toMutableSet()
+        val raw = (prefs.getStringSet("rects", emptySet()) ?: emptySet()).toMutableSet()
         raw.add(p.joinToString(","))
         prefs.edit().putStringSet("rects", raw).apply()
     }
