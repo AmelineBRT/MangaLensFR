@@ -154,8 +154,8 @@ class ScanlationRenderTest {
         assertTrue("typeset text must land inside the balloon (found $textPixels dark px)", textPixels > 40)
 
         assertTrue(
-            "the balloon's own outline stroke must survive the fill",
-            luminance(out.getPixel(box.left + 1, box.centerY())) < 100,
+            "the cleaning must not reconstruct a dark contour",
+            luminance(out.getPixel(box.left + 1, box.centerY())) > 200,
         )
     }
 
