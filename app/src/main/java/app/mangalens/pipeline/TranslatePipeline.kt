@@ -852,7 +852,7 @@ class TranslatePipeline(
             }
             y += sy
         }
-        return total > 0 && inside.toFloat() / total >= 0.70f
+        return total > 0 && inside.toFloat() / total >= 0.50f
     }
 
     /** Collapses a translation to a form that catches near-repeats. */
