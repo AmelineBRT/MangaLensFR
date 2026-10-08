@@ -562,24 +562,31 @@ class TranslatePipeline(
         var label = "Google"
         var note: String? = null
 
-        // Publish each bubble as soon as its translation returns instead of
-        // waiting for the whole page.
-        for (bubble in dialogue) {
+        // Translate one visual row at a time. GoogleFreeEngine can batch a
+        // row in one request (or parallelize it as a fallback), which is much
+        // faster than one network round-trip per balloon. Results are still
+        // emitted one-by-one left-to-right so the reader sees the requested
+        // progressive order.
+        val rows = rowWiseGroups(dialogue)
+        for (row in rows) {
             val outcome = translation.translate(
-                listOf(bubble.text),
+                row.map { it.text },
                 lang,
                 settings,
-                kinds = listOf(bubble.kind),
-                runs = listOf(bubble.runId),
-                parts = listOf(bubble.runPart),
+                kinds = row.map { it.kind },
+                runs = row.map { it.runId },
+                parts = row.map { it.runPart },
                 forceGoogle = forceGoogle,
             )
             label = outcome.engineLabel
             note = outcome.note ?: note
-            val translated = outcome.texts.firstOrNull().orEmpty()
-            val gated = JunkFilter.accept(bubble.text, translated, lang)
-            if (gated != null) {
-                rendered.add(renderBubble(bitmap, bubble.box, gated, bubble.text, bubble.vertical, bubble.kind, detected))
+            for (index in row.indices) {
+                val bubble = row[index]
+                val translated = outcome.texts.getOrNull(index).orEmpty()
+                val gated = JunkFilter.accept(bubble.text, translated, lang) ?: continue
+                rendered.add(
+                    renderBubble(bitmap, bubble.box, gated, bubble.text, bubble.vertical, bubble.kind, detected)
+                )
                 onPartial?.invoke(PageResult(rendered.toList(), label, note))
             }
         }
@@ -769,8 +776,8 @@ class TranslatePipeline(
      * next row, and so on. This controls paint order only; each bubble keeps
      * its own internal reading direction.
      */
-    private fun rowWiseOrder(items: List<Bubble>): List<Bubble> {
-        if (items.size < 2) return items
+    private fun rowWiseGroups(items: List<Bubble>): List<List<Bubble>> {
+        if (items.isEmpty()) return emptyList()
         data class Row(var top: Int, var bottom: Int, val items: MutableList<Bubble>)
         val rows = ArrayList<Row>()
         val sorted = items.sortedBy { it.box.centerY() }
@@ -791,8 +798,11 @@ class TranslatePipeline(
             }
         }
         return rows.sortedBy { (it.top + it.bottom) / 2 }
-            .flatMap { it.items.sortedBy { b -> b.box.centerX() } }
+            .map { it.items.sortedBy { b -> b.box.centerX() } }
     }
+
+    private fun rowWiseOrder(items: List<Bubble>): List<Bubble> =
+        rowWiseGroups(items).flatten()
 
     /**
      * Requires most sampled pixels of the OCR region to be inside the actual
