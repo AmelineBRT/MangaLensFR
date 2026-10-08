@@ -170,6 +170,7 @@ object Utterance {
             SourceLang.KO -> KO_CONNECTIVES
             SourceLang.ZH -> ZH_CONNECTIVES
             SourceLang.JA -> JA_CONNECTIVES
+            SourceLang.EN -> emptySet()
             // In AUTO the script itself picks the table.
             SourceLang.AUTO -> when {
                 Script.hangulCount(t) > 0 -> KO_CONNECTIVES
