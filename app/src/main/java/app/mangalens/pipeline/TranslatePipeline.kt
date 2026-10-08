@@ -987,19 +987,24 @@ class TranslatePipeline(
                 if (!boundary) continue
                 val sx = (box.left + ((x * 2 + 1) * box.width()) / (2 * w)).coerceIn(0, bitmap.width - 1)
                 val sy = (box.top + ((y * 2 + 1) * box.height()) / (2 * h)).coerceIn(0, bitmap.height - 1)
+                // Keep a small source-pixel halo around the detected boundary.
+                // This preserves the original balloon stroke even when the detector's
+                // binary mask stops a few pixels inside the visible outline.
                 var darkest = bitmap.getPixel(sx, sy)
-                 var darkLum = luminance(darkest)
-                 for (dy in -1..1) for (dx in -1..1) {
-                     val nx = (sx + dx).coerceIn(0, bitmap.width - 1)
-                     val ny = (sy + dy).coerceIn(0, bitmap.height - 1)
-                     val q = bitmap.getPixel(nx, ny)
-                     val qLum = luminance(q)
-                     if (qLum < darkLum) {
-                         darkest = q
-                         darkLum = qLum
-                     }
-                 }
-                 out[i] = darkest or (0xFF shl 24)
+                var darkLum = luminance(darkest)
+                for (dy in -3..3) for (dx in -3..3) {
+                    val nx = (sx + dx).coerceIn(0, bitmap.width - 1)
+                    val ny = (sy + dy).coerceIn(0, bitmap.height - 1)
+                    val q = bitmap.getPixel(nx, ny)
+                    val qLum = luminance(q)
+                    if (qLum < darkLum) {
+                        darkest = q
+                        darkLum = qLum
+                    }
+                }
+                // Only retain genuinely dark stroke pixels; white/grey source pixels
+                // stay covered by the opaque fill.
+                if (darkLum < 160) out[i] = darkest or (0xFF shl 24)
             }
         }
         return Bitmap.createBitmap(out, w, h, Bitmap.Config.ARGB_8888)
