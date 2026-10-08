@@ -981,7 +981,6 @@ class TranslatePipeline(
         // A gradient or textured balloon is cleaned with its own paper
         // continued under the lettering, not with a flat patch of the average.
         val fill = balloon?.let { BalloonFill.build(bitmap, it) }
-        val outline = balloon?.let { balloonOutline(bitmap, it) }
         return RenderBubble(
             box = Rect(box),
             // Manga lettering is conventionally all-caps. Keep the translation
@@ -995,7 +994,6 @@ class TranslatePipeline(
             kind = kind,
             balloon = balloon,
             fill = fill,
-            outline = outline,
         )
     }
 
@@ -1089,44 +1087,6 @@ class TranslatePipeline(
     }
 
     /** Copies only the detected balloon boundary from the source page. */
-    private fun balloonOutline(bitmap: Bitmap, balloon: Balloon): Bitmap? {
-        val w = balloon.maskW
-        val h = balloon.maskH
-        if (w < 1 || h < 1 || balloon.mask.size < w * h) return null
-        val out = IntArray(w * h)
-        val box = balloon.box
-        for (y in 0 until h) {
-            for (x in 0 until w) {
-                val i = y * w + x
-                if (!balloon.mask[i]) continue
-                val boundary = x == 0 || y == 0 || x == w - 1 || y == h - 1 ||
-                    !balloon.mask[i - 1] || !balloon.mask[i + 1] ||
-                    !balloon.mask[i - w] || !balloon.mask[i + w]
-                if (!boundary) continue
-                val sx = (box.left + ((x * 2 + 1) * box.width()) / (2 * w)).coerceIn(0, bitmap.width - 1)
-                val sy = (box.top + ((y * 2 + 1) * box.height()) / (2 * h)).coerceIn(0, bitmap.height - 1)
-                // Keep a small source-pixel halo around the detected boundary.
-                // This preserves the original balloon stroke even when the detector's
-                // binary mask stops a few pixels inside the visible outline.
-                var darkest = bitmap.getPixel(sx, sy)
-                var darkLum = luminance(darkest)
-                for (dy in -3..3) for (dx in -3..3) {
-                    val nx = (sx + dx).coerceIn(0, bitmap.width - 1)
-                    val ny = (sy + dy).coerceIn(0, bitmap.height - 1)
-                    val q = bitmap.getPixel(nx, ny)
-                    val qLum = luminance(q)
-                    if (qLum < darkLum) {
-                        darkest = q
-                        darkLum = qLum
-                    }
-                }
-                // Only retain genuinely dark stroke pixels; white/grey source pixels
-                // stay covered by the opaque fill.
-                if (darkLum < 160) out[i] = darkest or (0xFF shl 24)
-            }
-        }
-        return Bitmap.createBitmap(out, w, h, Bitmap.Config.ARGB_8888)
-    }
 
     private fun luminance(c: Int) = (Color.red(c) * 299 + Color.green(c) * 587 + Color.blue(c) * 114) / 1000
 
