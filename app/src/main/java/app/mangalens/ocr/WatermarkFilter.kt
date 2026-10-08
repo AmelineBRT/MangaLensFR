@@ -13,7 +13,8 @@ object WatermarkFilter {
 
     private val known = listOf(
         "weconics", "wecomics", "webtoon", "scanlation", "scan", "raw",
-        "translated by", "translation by", "credits", "credit", "chapter by"
+        "translated by", "translation by", "credits", "credit", "chapter by",
+        "oui comics"
     )
 
     fun filter(lines: List<OcrLine>, balloons: List<Rect>, pageWidth: Int, pageHeight: Int): List<OcrLine> {
@@ -35,6 +36,11 @@ object WatermarkFilter {
     ): Boolean {
         val text = Script.clean(line.text).lowercase()
         if (text.length < 3) return false
+        // Some scan brands are printed directly over artwork (not at the
+        // page edge and sometimes inside a large white cloud). Exact known
+        // brand phrases must be discarded before balloon association, or a
+        // false "balloon" could bleach the artwork beneath the watermark.
+        if (text.replace(Regex("\\s+"), " ").contains("oui comics")) return true
         if (balloons.any { containsMostly(it, line.box) }) return false
 
         val stroke = stroke(line)
