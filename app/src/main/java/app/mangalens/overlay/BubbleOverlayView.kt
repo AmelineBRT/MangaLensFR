@@ -325,7 +325,7 @@ class BubbleOverlayView(context: Context) : View(context) {
         // No replacement outline is drawn, so the result stays clean.
         for (i in mask.indices) {
             if (!mask[i]) continue
-            px[i] = colors?.get(i) ?: Color.WHITE
+            px[i] = Color.WHITE
             px[i] = Color.argb(255, Color.red(px[i]), Color.green(px[i]), Color.blue(px[i]))
             any = true
         }
