@@ -266,7 +266,7 @@ class OverlayController(private val context: Context, private val listener: List
                         ex=e.x; ey=e.y
                         val r=Rect(minOf(sx,ex).toInt(),minOf(sy,ey).toInt(),maxOf(sx,ex).toInt(),maxOf(sy,ey).toInt())
                         finishSelection()
-                        if(r.width()>=dp(8) && r.height()>=dp(8)) listener.onAddExclusion(r)
+                        if(r.width()>=dp(8f) && r.height()>=dp(8f)) listener.onAddExclusion(r)
                     }
                     MotionEvent.ACTION_CANCEL -> finishSelection()
                 }
