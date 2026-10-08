@@ -1,5 +1,6 @@
 package app.mangalens.pipeline
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.Rect
@@ -143,7 +144,7 @@ class TranslatePipeline(
                 ocr.recognize(bitmap, settings.sourceLang)
             }
             val scanJob = async(Dispatchers.Default) {
-                BalloonFinder.analyze(bitmap, ignoreTop, ignoreBottom, exclusions)
+                BalloonFinder.analyze(bitmap, ignoreTop, ignoreBottom, exclusions, context)
             }
             val firstPass = ocrJob.await()
             val scan = scanJob.await()
