@@ -238,6 +238,34 @@ object BalloonFinder {
 
         val planes = Planes.of(bitmap, w, h)
 
+        val n = w * h
+        val light = BooleanArray(n)
+        val dark = BooleanArray(n)
+        val darkInterior = BooleanArray(n)
+        val tinted = BooleanArray(n)
+        val paper = BooleanArray(n)
+        val inkWall = BooleanArray(n)
+        val solidDark = BooleanArray(n)
+        val edge = BooleanArray(n)
+        val flatMid = BooleanArray(n)
+        val flatDim = BooleanArray(n)
+        for (i in 0 until n) {
+            val mean = planes.mean[i]
+            val lo = planes.min[i]
+            val hi = planes.max[i]
+            light[i] = mean >= LIGHT
+            dark[i] = mean < DARK
+            darkInterior[i] = mean <= INVERTED_INTERIOR
+            tinted[i] = mean >= TINTED_INTERIOR
+            paper[i] = lo >= PAPER_FLOOR
+            inkWall[i] = hi >= DARK_CEILING
+            solidDark[i] = hi < 90
+            // A drawn line: solid ink, or a cell straddling light and dark.
+            edge[i] = lo < 90 || hi - lo >= 100
+            val flat = hi - lo <= FLAT_CONTRAST
+            flatMid[i] = flat && mean in DARK until LIGHT
+            flatDim[i] = flat && mean in (INVERTED_INTERIOR + 1) until LIGHT
+        }
         // v0.13 primary path: dual-label YOLO segmentation (bubble + text).
         // The model mask, not a rectangle or an inferred outline, becomes the
         // source of truth for the bubble. The deterministic detector below is
@@ -268,34 +296,6 @@ object BalloonFinder {
                     }
                 }
             }
-        }
-        val n = w * h
-        val light = BooleanArray(n)
-        val dark = BooleanArray(n)
-        val darkInterior = BooleanArray(n)
-        val tinted = BooleanArray(n)
-        val paper = BooleanArray(n)
-        val inkWall = BooleanArray(n)
-        val solidDark = BooleanArray(n)
-        val edge = BooleanArray(n)
-        val flatMid = BooleanArray(n)
-        val flatDim = BooleanArray(n)
-        for (i in 0 until n) {
-            val mean = planes.mean[i]
-            val lo = planes.min[i]
-            val hi = planes.max[i]
-            light[i] = mean >= LIGHT
-            dark[i] = mean < DARK
-            darkInterior[i] = mean <= INVERTED_INTERIOR
-            tinted[i] = mean >= TINTED_INTERIOR
-            paper[i] = lo >= PAPER_FLOOR
-            inkWall[i] = hi >= DARK_CEILING
-            solidDark[i] = hi < 90
-            // A drawn line: solid ink, or a cell straddling light and dark.
-            edge[i] = lo < 90 || hi - lo >= 100
-            val flat = hi - lo <= FLAT_CONTRAST
-            flatMid[i] = flat && mean in DARK until LIGHT
-            flatDim[i] = flat && mean in (INVERTED_INTERIOR + 1) until LIGHT
         }
         // The light flood may only enter paper: a cell holding any ink at
         // all is a wall. Lettering fattens by up to a cell each side, which
