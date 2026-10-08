@@ -1,3 +1,5 @@
+import java.net.URL
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -10,7 +12,7 @@ val downloadMangaFont = tasks.register("downloadMangaFont") {
     doLast {
         if (!out.exists() || out.length() < 1000000L) {
             out.parentFile.mkdirs()
-            java.net.URL("https://raw.githubusercontent.com/fontdasu/Mochiypop/master/fonts/ttf/MochiyPopOne-Regular.ttf")
+            URL("https://raw.githubusercontent.com/fontdasu/Mochiypop/master/fonts/ttf/MochiyPopOne-Regular.ttf")
                 .openStream().use { input ->
                     out.outputStream().use { output -> input.copyTo(output) }
                 }
