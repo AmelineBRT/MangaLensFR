@@ -152,7 +152,10 @@ class BubbleOverlayView(context: Context) : View(context) {
         runCatching { ResourcesCompat.getFont(context, id) }.getOrNull()
 
     private val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-    private val maskPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+    // Do not filter the alpha mask: bitmap filtering can create partially
+    // transparent edge pixels when the low-resolution mask is scaled to the
+    // full-resolution balloon. Every interior pixel must remain hard opaque.
+    private val maskPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val outlinePaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
@@ -323,11 +326,30 @@ class BubbleOverlayView(context: Context) : View(context) {
         // longer leave a transparent boundary ring: that ring was exactly
         // where source lettering could remain visible around the translation.
         // No replacement outline is drawn, so the result stays clean.
-        for (i in mask.indices) {
-            if (!mask[i]) continue
-            px[i] = Color.WHITE
-            px[i] = Color.argb(255, Color.red(px[i]), Color.green(px[i]), Color.blue(px[i]))
-            any = true
+        // Fill the detected interior plus a one-cell safety expansion.
+        // The detector works at a coarse resolution; without this small
+        // expansion a source glyph sitting exactly on a cell boundary could
+        // survive the resampling and remain visible under the translation.
+        val expanded = BooleanArray(mask.size)
+        for (y in 0 until h) {
+            for (x in 0 until w) {
+                var on = mask[y * w + x]
+                if (!on) {
+                    for (dy in -1..1) for (dx in -1..1) {
+                        val nx = x + dx
+                        val ny = y + dy
+                        if (nx in 0 until w && ny in 0 until h && mask[ny * w + nx]) {
+                            on = true
+                            break
+                        }
+                    }
+                }
+                expanded[y * w + x] = on
+                if (on) any = true
+            }
+        }
+        for (i in expanded.indices) {
+            if (expanded[i]) px[i] = Color.WHITE or (0xFF shl 24)
         }
         if (!any) return null
         return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
@@ -658,8 +680,9 @@ class BubbleOverlayView(context: Context) : View(context) {
                 // The cleaning layer is intentionally opaque. The overlay
                 // window itself is translucent, but the pixels of a cleaned
                 // balloon must never inherit alpha from the source lettering.
-                maskPaint.alpha = 255
-                maskPaint.colorFilter = p.tint
+                // The bitmap contains only 0/255 alpha values and the
+                // window itself is at alpha 1.0, so the white stamp completely
+                // replaces the pixels below it.
                 maskPaint.alpha = 255
                 maskPaint.colorFilter = p.tint
                 canvas.drawBitmap(p.mask, null, p.maskDst, maskPaint)            } else if (p.card != null) {
