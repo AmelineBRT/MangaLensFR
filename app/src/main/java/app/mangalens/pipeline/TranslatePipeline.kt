@@ -401,14 +401,12 @@ class TranslatePipeline(
         val targetBubbles = if (translateOutsideBalloons) {
             bubbles.filter { it.kind == BubbleKind.DIALOGUE }
         } else {
+            // Association is based on the balloon's actual pixel mask, not
+            // merely on overlapping rectangles. This stops drawings near a
+            // balloon from stealing its translation.
             bubbles.filter { b ->
                 b.kind == BubbleKind.DIALOGUE &&
-                    detected.any { d ->
-                        val ix = maxOf(0, minOf(b.box.right, d.box.right) - maxOf(b.box.left, d.box.left))
-                        val iy = maxOf(0, minOf(b.box.bottom, d.box.bottom) - maxOf(b.box.top, d.box.top))
-                        val area = b.box.width().toLong() * b.box.height().toLong()
-                        area > 0L && ix.toLong() * iy.toLong() >= area * 0.35
-                    }
+                    detected.any { d -> textInsideBalloon(b.box, d) }
             }
         }
 
@@ -555,7 +553,9 @@ class TranslatePipeline(
     ): PageResult {
         // Balloons detected in the pixels but unread by OCR carry no text; the
         // machine engines have nothing to work from and would render blanks.
-        val dialogue = bubbles.filter { it.kind == BubbleKind.DIALOGUE && it.text.isNotBlank() }
+        val dialogue = rowWiseOrder(
+            bubbles.filter { it.kind == BubbleKind.DIALOGUE && it.text.isNotBlank() }
+        )
         if (dialogue.isEmpty()) return PageResult(emptyList(), "Google", null)
 
         val rendered = ArrayList<RenderBubble>()
@@ -764,6 +764,66 @@ class TranslatePipeline(
     private fun overlapping(a: Rect, b: Rect): Boolean =
         a.contains(b.centerX(), b.centerY()) || b.contains(a.centerX(), a.centerY()) || iou(a, b) > 0.2f
 
+    /**
+     * Orders progressive rendering visually: top row left-to-right, then the
+     * next row, and so on. This controls paint order only; each bubble keeps
+     * its own internal reading direction.
+     */
+    private fun rowWiseOrder(items: List<Bubble>): List<Bubble> {
+        if (items.size < 2) return items
+        data class Row(var top: Int, var bottom: Int, val items: MutableList<Bubble>)
+        val rows = ArrayList<Row>()
+        val sorted = items.sortedBy { it.box.centerY() }
+        val medianH = items.map { it.box.height() }.sorted()[items.size / 2].coerceAtLeast(8)
+        val tolerance = (medianH * 0.55f).toInt().coerceAtLeast(8)
+        for (b in sorted) {
+            val cy = b.box.centerY()
+            val row = rows.firstOrNull { r ->
+                val overlap = minOf(r.bottom, b.box.bottom) - maxOf(r.top, b.box.top)
+                overlap > 0 || kotlin.math.abs((r.top + r.bottom) / 2 - cy) <= tolerance
+            }
+            if (row != null) {
+                row.top = minOf(row.top, b.box.top)
+                row.bottom = maxOf(row.bottom, b.box.bottom)
+                row.items.add(b)
+            } else {
+                rows.add(Row(b.box.top, b.box.bottom, mutableListOf(b)))
+            }
+        }
+        return rows.sortedBy { (it.top + it.bottom) / 2 }
+            .flatMap { it.items.sortedBy { b -> b.box.centerX() } }
+    }
+
+    /**
+     * Requires most sampled pixels of the OCR region to be inside the actual
+     * detected balloon mask. Rectangle overlap alone caused ghost placements.
+     */
+    private fun textInsideBalloon(textBox: Rect, balloon: Balloon): Boolean {
+        if (!balloon.box.contains(textBox.centerX(), textBox.centerY())) return false
+        val w = balloon.maskW
+        val h = balloon.maskH
+        if (w <= 0 || h <= 0 || balloon.mask.size < w * h) return false
+        var inside = 0
+        var total = 0
+        val sx = maxOf(1, textBox.width() / 8)
+        val sy = maxOf(1, textBox.height() / 8)
+        var y = textBox.top
+        while (y < textBox.bottom) {
+            var x = textBox.left
+            while (x < textBox.right) {
+                total++
+                val mx = ((x - balloon.box.left).toFloat() / balloon.box.width() * w)
+                    .toInt().coerceIn(0, w - 1)
+                val my = ((y - balloon.box.top).toFloat() / balloon.box.height() * h)
+                    .toInt().coerceIn(0, h - 1)
+                if (balloon.mask[my * w + mx]) inside++
+                x += sx
+            }
+            y += sy
+        }
+        return total > 0 && inside.toFloat() / total >= 0.70f
+    }
+
     /** Collapses a translation to a form that catches near-repeats. */
     private fun fingerprint(s: String): String =
         s.lowercase().filter { it.isLetterOrDigit() }
@@ -938,10 +998,8 @@ class TranslatePipeline(
      */
     private fun balloonFor(box: Rect, detected: List<Balloon>): Balloon? {
         detected.firstOrNull { it.box == box }?.let { return it }
-        return detected.firstOrNull { b ->
-            b.box.contains(box.centerX(), box.centerY()) &&
-                (iou(b.box, box) > 0.2f || containedShare(box, b.box) > 0.8f)
-        }
+        return detected.filter { textInsideBalloon(box, it) }
+            .maxByOrNull { containedShare(box, it.box) }
     }
 
     /** Fraction of [box] inside [within]. */
