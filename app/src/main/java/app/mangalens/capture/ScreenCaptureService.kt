@@ -38,6 +38,7 @@ import app.mangalens.pipeline.UpgradeMerge
 import app.mangalens.settings.AppSettings
 import app.mangalens.settings.CaptureMode
 import app.mangalens.settings.SettingsRepository
+import app.mangalens.settings.TranslationExclusions
 import app.mangalens.translate.CastBook
 import app.mangalens.translate.GlossaryStore
 import app.mangalens.translate.TranslationCache
@@ -160,6 +161,7 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private lateinit var settingsRepo: SettingsRepository
+    private val translationExclusions by lazy { TranslationExclusions(this) }
 
     @Volatile private var settings = AppSettings()
 
@@ -742,7 +744,7 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
         // Never read a frame with our own cards on it.
         if (controller?.bubbleView?.hasBubbles() == true) return
         val bmp = grabFrame() ?: return
-        val exclusions = controller?.overlayExclusions() ?: emptyList()
+        val exclusions = captureExclusions()
         preparing = true
         val job = scope.async(Dispatchers.Default) {
             FrameStability.grayThumbOf(bmp) to pipeline.analyze(bmp, settings, exclusions)
@@ -976,6 +978,13 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
         }
     }
 
+
+    private fun captureExclusions(): List<Rect> {
+        val out = ArrayList<Rect>()
+        out.addAll(controller?.overlayExclusions() ?: emptyList())
+        out.addAll(translationExclusions.get(capW, capH))
+        return out
+    }
     private fun setPill(text: String?, autoHideMs: Long = 0) {
         controller?.setStatus(text, autoHideMs)
     }
@@ -1040,6 +1049,17 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
                 paintCards(shown)
             }
         }
+    }
+
+    override fun onClearExclusions() {
+        translationExclusions.clear()
+        setPill("zones exclues effacées", 1800)
+    }
+
+    override fun onAddExclusion(rect: Rect) {
+        translationExclusions.add(rect, capW, capH)
+        clearCards()
+        setPill("zone exclue enregistrée", 1800)
     }
 
     override fun onOpenSettings() {
