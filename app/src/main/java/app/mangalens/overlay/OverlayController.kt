@@ -32,6 +32,8 @@ class OverlayController(private val context: Context, private val listener: List
         /** Forget this series' glossary, cast and story so far, and start fresh. */
         fun onNewSeries()
         fun onOpenSettings()
+        fun onClearExclusions()
+        fun onAddExclusion(rect: Rect)
         fun onStopRequested()
         fun isPaused(): Boolean
         fun isAutoMode(): Boolean
@@ -44,6 +46,7 @@ class OverlayController(private val context: Context, private val listener: List
     private var button: FloatingButtonView? = null
     private var pill: TextView? = null
     private var menu: LinearLayout? = null
+    private var selection: View? = null
     private var controlsLp: WindowManager.LayoutParams? = null
     private var attached = false
     private val hidePill = Runnable { pill?.visibility = View.GONE }
@@ -85,6 +88,7 @@ class OverlayController(private val context: Context, private val listener: List
     fun detach() {
         if (!attached) return
         dismissMenu()
+        finishSelection()
         runCatching { wm.removeView(bubbleView) }
         controls?.let { runCatching { wm.removeView(it) } }
         controls = null
@@ -237,6 +241,47 @@ class OverlayController(private val context: Context, private val listener: List
         controlsLp = lp
     }
 
+
+    private fun beginSelection() {
+        dismissMenu()
+        if (selection != null) return
+        val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply { color=0xE06C5CE7.toInt(); style=Paint.Style.STROKE; strokeWidth=dp(3f).toFloat() }
+        val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { color=0x306C5CE7; style=Paint.Style.FILL }
+        val view = object : View(context) {
+            var sx=0f; var sy=0f; var ex=0f; var ey=0f
+            override fun onDraw(canvas: android.graphics.Canvas) {
+                canvas.drawColor(0x24000000)
+                if (sx!=ex || sy!=ey) {
+                    val l=minOf(sx,ex); val t=minOf(sy,ey); val rr=maxOf(sx,ex); val b=maxOf(sy,ey)
+                    canvas.drawRect(l,t,rr,b,fill); canvas.drawRect(l,t,rr,b,stroke)
+                }
+            }
+            override fun onTouchEvent(e: MotionEvent): Boolean {
+                when(e.actionMasked) {
+                    MotionEvent.ACTION_DOWN -> { sx=e.x; sy=e.y; ex=sx; ey=sy; invalidate() }
+                    MotionEvent.ACTION_MOVE -> { ex=e.x; ey=e.y; invalidate() }
+                    MotionEvent.ACTION_UP -> {
+                        ex=e.x; ey=e.y
+                        val r=Rect(minOf(sx,ex).toInt(),minOf(sy,ey).toInt(),maxOf(sx,ex).toInt(),maxOf(sy,ey).toInt())
+                        finishSelection()
+                        if(r.width()>=dp(8) && r.height()>=dp(8)) listener.onAddExclusion(r)
+                    }
+                    MotionEvent.ACTION_CANCEL -> finishSelection()
+                }
+                return true
+            }
+        }
+        val lp=WindowManager.LayoutParams(WindowManager.LayoutParams.MATCH_PARENT,WindowManager.LayoutParams.MATCH_PARENT,WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,PixelFormat.TRANSLUCENT)
+        lp.gravity=Gravity.TOP or Gravity.START
+        wm.addView(view,lp); selection=view
+    }
+
+    private fun finishSelection() {
+        val v=selection ?: return
+        runCatching { wm.removeView(v) }
+        selection=null
+        onFootprintChanged?.invoke()
+    }
     private fun showMenu() {
         if (menu != null) return
         val lpControls = controlsLp ?: return
@@ -267,6 +312,8 @@ class OverlayController(private val context: Context, private val listener: List
             listener.onToggleMode()
         }
         item("👁  Voir l’original (4 s)") { listener.onPeek() }
+        item("🚫  Exclure une zone du scan") { beginSelection() }
+        item("🧹  Effacer les zones exclues") { listener.onClearExclusions() }
         item("📖  Nouvelle série — oublier les noms mémorisés") { listener.onNewSeries() }
         item("⚙  Réglages") { listener.onOpenSettings() }
         item("✕  Arrêter la traduction") { listener.onStopRequested() }
