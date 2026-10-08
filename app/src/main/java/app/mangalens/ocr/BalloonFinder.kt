@@ -256,7 +256,7 @@ object BalloonFinder {
                         .mapNotNull { modelBalloon(bitmap, it) }
                         .let { dedupeModelBalloons(it.toList()) }
                     if (modelBalloons.isNotEmpty()) {
-                        val panels = PageLayout.panels(paper = planes.paper, solidDark = planes.solidDark, edge = planes.edge, w = w, h = h).map { r ->
+                        val panels = PageLayout.panels(planes.paper, planes.solidDark, planes.edge, w, h).map { r ->
                             Rect(
                                 (r.left / scale).toInt(),
                                 (r.top / scale).toInt(),
