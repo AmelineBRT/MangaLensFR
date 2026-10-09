@@ -54,6 +54,7 @@ class TranslationService(
             settings.engine == EngineKind.LLM -> listOf(LlmEngine(settings, glossary, cast), google, myMemory, mlkit)
             settings.engine == EngineKind.GOOGLE -> listOf(google, myMemory, mlkit)
             settings.engine == EngineKind.MYMEMORY -> listOf(myMemory, google, mlkit)
+            settings.engine == EngineKind.MICROSOFT -> listOf(MicrosoftTranslatorEngine(settings.microsoftApiKey, settings.microsoftRegion), google, myMemory, mlkit)
             settings.engine == EngineKind.DEEPL -> listOf(DeepLEngine(settings.deeplApiKey), google, myMemory, mlkit)
             else -> listOf(mlkit, google, myMemory)
         }
