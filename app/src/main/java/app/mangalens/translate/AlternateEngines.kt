@@ -8,6 +8,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.FormBody
 import okhttp3.HttpUrl
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
@@ -126,9 +128,7 @@ class MicrosoftTranslatorEngine(
             val url = "https://api.cognitive.microsofttranslator.com/translate?api-version=3.0&to=fr"
             val payload = org.json.JSONArray()
             items.forEach { payload.put(JSONObject().put("Text", it)) }
-            val body = okhttp3.RequestBody.create(
-                okhttp3.MediaType.parse("application/json; charset=utf-8"), payload.toString()
-            )
+            val body = payload.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
             val builder = Request.Builder()
                 .url(url)
                 .header("Ocp-Apim-Subscription-Key", apiKey.trim())
