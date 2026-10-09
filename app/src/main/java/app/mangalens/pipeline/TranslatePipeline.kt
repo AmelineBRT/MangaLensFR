@@ -162,9 +162,10 @@ class TranslatePipeline(
                 cleanOcr.lines, bitmap.height, ignoreTop, ignoreBottom, cleanOcr.lang, exclusions,
                 balloons, includeEmptyBalloons = false, panels = scan.panels,
             )
-            val bubbles = groupedBubbles.filter { bubble ->
-                detected.any { balloon -> textInsideBalloon(bubble.box, balloon) }
-            }
+            // Do not discard a grouped OCR region just because balloon detection
+            // missed its shape. Stylized/jagged speech bubbles often fail the
+            // pixel-mask containment test even when OCR has read their text.
+            val bubbles = groupedBubbles
             val anchorLines = cleanOcr.lines.mapNotNull { l ->
                 val cleaned = Script.clean(l.text)
                 if (cleaned.length < 2) return@mapNotNull null
@@ -236,9 +237,9 @@ class TranslatePipeline(
             ocrResult.lines, bitmap.height, ignoreTop, ignoreBottom, ocrResult.lang, exclusions,
             balloons, includeEmptyBalloons = useVision, panels = scan.panels,
         )
-        val bubbles = groupedBubbles.filter { bubble ->
-            detected.any { balloon -> textInsideBalloon(bubble.box, balloon) }
-        }
+        // Keep grouped OCR regions even if the pixel detector missed the
+        // balloon contour; the strict containment gate was dropping real dialogue.
+        val bubbles = includeAllOcrLines(groupedBubbles, ocrResult.lines)
         // Raw OCR lines, kept for anchoring the vision model's unanchored
         // answers by their text — the lines know where the text physically
         // is even when they never survived into a region.
