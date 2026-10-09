@@ -265,9 +265,18 @@ private fun EngineCard(settings: AppSettings, repo: SettingsRepository) {
             SectionTitle("Moteur de traduction")
             Spacer(Modifier.height(10.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Chip("Gratuit · Google", settings.engine == EngineKind.GOOGLE) {
+                Chip("Google", settings.engine == EngineKind.GOOGLE) {
                     scope.launch { repo.setEngine(EngineKind.GOOGLE) }
                 }
+                Chip("MyMemory", settings.engine == EngineKind.MYMEMORY) {
+                    scope.launch { repo.setEngine(EngineKind.MYMEMORY) }
+                }
+                Chip("DeepL", settings.engine == EngineKind.DEEPL) {
+                    scope.launch { repo.setEngine(EngineKind.DEEPL) }
+                }
+            }
+            Spacer(Modifier.height(6.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Chip("IA Pro ✨", settings.engine == EngineKind.LLM) {
                     scope.launch { repo.setEngine(EngineKind.LLM) }
                 }
@@ -278,13 +287,39 @@ private fun EngineCard(settings: AppSettings, repo: SettingsRepository) {
             Spacer(Modifier.height(8.dp))
             Text(
                 when (settings.engine) {
-                    EngineKind.GOOGLE -> "Fonctionne immédiatement, sans configuration. Bonne qualité au quotidien."
+                    EngineKind.GOOGLE -> "Sans clé. Si Google bloque temporairement les requêtes, MangaLens essaie MyMemory puis le moteur hors ligne."
+                    EngineKind.MYMEMORY -> "Service en ligne sans clé. Il a ses propres quotas et peut lui aussi être indisponible ; Google et le moteur hors ligne servent de secours."
+                    EngineKind.DEEPL -> "DeepL API. Une clé est nécessaire ; une clé DeepL API Free peut bénéficier d’un quota gratuit. Sinon les tarifs et limites de ton compte s’appliquent. En cas d’échec, MangaLens essaie Google puis MyMemory."
                     EngineKind.LLM -> "L’IA lit les pages entières (y compris l’image) avec le contexte de l’histoire, un glossaire des noms, un ton naturel et les honorifiques. Une première traduction apparaît rapidement puis est améliorée. Une clé est nécessaire pour ce mode — celle de Gemini peut être gratuite."
-                    EngineKind.MLKIT -> "100 % hors ligne après le téléchargement initial d'environ 30 Mo par langue. Qualité la plus simple des trois."
+                    EngineKind.MLKIT -> "100 % hors ligne après le téléchargement initial d'environ 30 Mo par langue. Qualité la plus simple."
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+
+            if (settings.engine == EngineKind.DEEPL) {
+                Spacer(Modifier.height(12.dp))
+                var showDeepLKey by remember { mutableStateOf(false) }
+                OutlinedTextField(
+                    value = settings.deeplApiKey,
+                    onValueChange = { value -> scope.launch { repo.setDeepLApiKey(value.trim()) } },
+                    label = { Text("Clé API DeepL") },
+                    singleLine = true,
+                    visualTransformation = if (showDeepLKey) VisualTransformation.None else PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    trailingIcon = {
+                        Text(
+                            if (showDeepLKey) "masquer" else "afficher",
+                            modifier = Modifier.clickable { showDeepLKey = !showDeepLKey }.padding(end = 10.dp),
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                val uriHandler = LocalUriHandler.current
+                Text("Créer une clé DeepL API →", modifier = Modifier.clickable { uriHandler.openUri("https://www.deepl.com/pro-api") }.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
+            }
 
             if (settings.engine == EngineKind.LLM) {
                 Spacer(Modifier.height(12.dp))
@@ -450,6 +485,8 @@ private fun EngineCard(settings: AppSettings, repo: SettingsRepository) {
                                     EngineKind.LLM -> LlmEngine(draftSettings).translate(sample, SourceLang.AUTO)
                                     EngineKind.MLKIT -> MlKitEngine().translate(sample, SourceLang.AUTO)
                                     EngineKind.GOOGLE -> GoogleFreeEngine().translate(sample, SourceLang.AUTO)
+                                    EngineKind.MYMEMORY -> MyMemoryEngine().translate(sample, SourceLang.AUTO)
+                                    EngineKind.DEEPL -> DeepLEngine(settings.deeplApiKey).translate(sample, SourceLang.AUTO)
                                 }
                                 "“I'll stay with you. It's okay.” → “" + out.first() + "”"
                             } catch (e: Exception) {
