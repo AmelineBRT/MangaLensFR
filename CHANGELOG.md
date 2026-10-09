@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.12.3
+
+- Rebased on the newer accessibility-bubble-recovery work so the latest translation engines, OCR filtering, reading order, cache, and settings are preserved.
+- Kept the detector's previous thresholds and association instead of carrying over the overly permissive 0.12.1 detection changes.
+- Kept the opaque white balloon cleanup but removed the reconstructed outline; mask filtering remains hard-edged to avoid translucent fringe pixels.
+- Includes Google, MyMemory, offline ML Kit, DeepL/Microsoft API options, and AI providers supported by the existing settings (including Gemini's free tier).
+
 ## 0.10.1
 
 Tap-to-turn readers are noticed on the first tap.
