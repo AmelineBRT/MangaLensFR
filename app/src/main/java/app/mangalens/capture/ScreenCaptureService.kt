@@ -79,6 +79,7 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
         const val ACTION_TOGGLE_PAUSE = "app.mangalens.action.TOGGLE_PAUSE"
         const val EXTRA_RESULT_CODE = "resultCode"
         const val EXTRA_RESULT_DATA = "resultData"
+        const val EXTRA_USE_ACCESSIBILITY = "useAccessibilityOverlay"
 
         private const val NOTIF_ID = 41
         private const val MOTION_THRESHOLD = 3.6
@@ -304,7 +305,7 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
                     stopSelf()
                 } else {
                     startAsForeground()
-                    startProjection(code, data)
+                    startProjection(code, data, intent.getBooleanExtra(EXTRA_USE_ACCESSIBILITY, false))
                 }
             }
             ACTION_STOP -> stopSelf()
@@ -323,7 +324,7 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
         )
     }
 
-    private fun startProjection(code: Int, data: Intent) {
+    private fun startProjection(code: Int, data: Intent, useAccessibilityOverlay: Boolean) {
         if (projection != null) return
         val mpm = getSystemService(MediaProjectionManager::class.java)
         val mp = try {
@@ -345,7 +346,7 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
             }
         }, captureHandler)
         setupDisplay()
-        controller = OverlayController(this, this).also { it.attach() }
+        controller = OverlayController(this, this, useAccessibilityOverlay).also { it.attach() }
         controller?.bubbleView?.let { v ->
             v.textScale = settings.textScale
             v.bgOpacity = settings.bgOpacity
