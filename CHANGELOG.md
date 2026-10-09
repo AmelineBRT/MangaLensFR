@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.12.2
+
+- Tightened balloon shape/content gates to reduce false positives on panels and artwork being painted white.
+- Restored stricter OCR-to-balloon association so unrelated text is less likely to trigger a balloon cleaning mask.
+- Smoothed scaled mask edges to reduce the blocky black-and-white balloon contours; translation engine and reading order remain unchanged.
+
 ## 0.12.1
 
 - Removed the synthetic source-outline redraw that could create a visible contour around cleaned balloons.
