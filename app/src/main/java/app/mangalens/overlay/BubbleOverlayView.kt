@@ -667,9 +667,6 @@ class BubbleOverlayView(context: Context) : View(context) {
                 maskPaint.alpha = 255
                 maskPaint.colorFilter = p.tint
                 canvas.drawBitmap(p.mask, null, p.maskDst, maskPaint)
-                p.outline?.let { outline ->
-                    canvas.drawBitmap(outline, null, p.maskDst, outlinePaint)
-                }
             } else if (p.card != null) {
                 p.wipe?.let { wipe ->
                     bgPaint.color = Color.argb(
