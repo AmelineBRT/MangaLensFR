@@ -1078,7 +1078,12 @@ class TranslatePipeline(
         // rectangular card that leaves a few source glyphs visible.
         return detected.filter { balloon ->
             textInsideBalloon(box, balloon) ||
-                (balloon.box.contains(cx, cy) && maskContains(balloon, cx, cy))
+                (balloon.box.contains(cx, cy) && maskContains(balloon, cx, cy)) ||
+                // OCR boxes around a word can spill across the curved rim of
+                // a balloon. If the text centre is still within its bounds and
+                // most of the OCR box overlaps the balloon rectangle, retain
+                // the association so the full balloon gets cleaned.
+                (balloon.box.contains(cx, cy) && containedShare(box, balloon.box) >= 0.55f)
         }.maxByOrNull { containedShare(box, it.box) }
     }
 
