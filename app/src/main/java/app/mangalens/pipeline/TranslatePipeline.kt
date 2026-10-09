@@ -1083,7 +1083,12 @@ class TranslatePipeline(
                 // a balloon. If the text centre is still within its bounds and
                 // most of the OCR box overlaps the balloon rectangle, retain
                 // the association so the full balloon gets cleaned.
-                (balloon.box.contains(cx, cy) && containedShare(box, balloon.box) >= 0.55f)
+                // OCR boxes can extend beyond the detected rim so far that
+                // their centre falls just outside the balloon. If most of the
+                // text box still overlaps the balloon rectangle, attach it to
+                // the balloon anyway; otherwise it is rendered as displaced
+                // floating text and leaves the original glyphs visible.
+                (containedShare(box, balloon.box) >= 0.45f)
         }.maxByOrNull { containedShare(box, it.box) }
     }
 
