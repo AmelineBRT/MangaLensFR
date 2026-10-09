@@ -54,6 +54,29 @@ object WatermarkFilter {
             "日本語から英語", "日本語→英語", "日英翻訳"
         )
         if (explicitStamp.any { text.contains(it) || compact.contains(it.filter { ch -> ch.isLetterOrDigit() }) }) return true
+
+        // Scan credits are often split into separate OCR boxes, e.g. one box
+        // reads "Japanese" and the next reads "to English". Match nearby
+        // fragments as a group so neither half is translated as manga text.
+        val stampFragment = listOf("japanese", "english", "translated", "translation", "scanlation")
+            .any { text.contains(it) }
+        if (stampFragment) {
+            val nearbyStampFragment = all.any { other ->
+                other !== line &&
+                    listOf("japanese", "english", "translated", "translation", "scanlation")
+                        .any { Script.clean(other.text).lowercase().contains(it) } &&
+                    Rect.intersects(expanded(line.box, (medianStroke * 8).coerceAtLeast(36)), other.box)
+            }
+            if (nearbyStampFragment) return true
+            // Standalone, small "Japanese"/"English" labels are also common
+            // in bilingual scan watermarks. Keep normal-sized dialogue intact.
+            if ((text.contains("japanese") || text.contains("english")) &&
+                stroke(line) <= (medianStroke * 0.9f).toInt().coerceAtLeast(5) &&
+                all.none { other ->
+                    other !== line && Rect.intersects(expanded(line.box, stroke(line) * 3), other.box)
+                }
+            ) return true
+        }
         if (balloons.any { containsMostly(it, line.box) }) return false
 
         val stroke = stroke(line)
