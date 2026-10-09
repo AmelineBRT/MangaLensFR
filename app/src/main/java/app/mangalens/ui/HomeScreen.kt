@@ -266,6 +266,8 @@ private fun EngineCard(settings: AppSettings, repo: SettingsRepository) {
         Column(Modifier.padding(16.dp)) {
             SectionTitle("Moteur de traduction")
             Spacer(Modifier.height(10.dp))
+            Text("Sans clé API · sans paiement direct (quotas possibles)", style = MaterialTheme.typography.bodyMedium)
+            Spacer(Modifier.height(6.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Chip("Google", settings.engine == EngineKind.GOOGLE) {
                     scope.launch { repo.setEngine(EngineKind.GOOGLE) }
@@ -273,17 +275,19 @@ private fun EngineCard(settings: AppSettings, repo: SettingsRepository) {
                 Chip("MyMemory", settings.engine == EngineKind.MYMEMORY) {
                     scope.launch { repo.setEngine(EngineKind.MYMEMORY) }
                 }
-                Chip("DeepL", settings.engine == EngineKind.DEEPL) {
-                    scope.launch { repo.setEngine(EngineKind.DEEPL) }
-                }
-            }
-            Spacer(Modifier.height(6.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Chip("IA Pro ✨", settings.engine == EngineKind.LLM) {
-                    scope.launch { repo.setEngine(EngineKind.LLM) }
-                }
                 Chip("Hors ligne", settings.engine == EngineKind.MLKIT) {
                     scope.launch { repo.setEngine(EngineKind.MLKIT) }
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+            Text("Avec clé API · gratuit selon l’offre ou payant", style = MaterialTheme.typography.bodyMedium)
+            Spacer(Modifier.height(6.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Chip("DeepL API", settings.engine == EngineKind.DEEPL) {
+                    scope.launch { repo.setEngine(EngineKind.DEEPL) }
+                }
+                Chip("IA Pro ✨", settings.engine == EngineKind.LLM) {
+                    scope.launch { repo.setEngine(EngineKind.LLM) }
                 }
             }
             Spacer(Modifier.height(8.dp))
