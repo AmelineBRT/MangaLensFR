@@ -610,23 +610,43 @@ class TranslatePipeline(
         // per visual row was easy to rate-limit while scrolling quickly; the
         // provider already supports newline-separated entries and aligns its
         // response back to each source bubble. Keep rendering in reading order.
-        val outcome = translation.translate(
-            dialogue.map { it.text },
-            lang,
-            settings,
-            kinds = dialogue.map { it.kind },
-            runs = dialogue.map { it.runId },
-            parts = dialogue.map { it.runPart },
-            forceGoogle = forceGoogle,
-        )
+        // If Google returns HTTP 429 (or another temporary request failure),
+        // preserve the readable source text in its original position instead
+        // of aborting the page and leaving the reader with no overlay.
+        val outcome = try {
+            translation.translate(
+                dialogue.map { it.text },
+                lang,
+                settings,
+                kinds = dialogue.map { it.kind },
+                runs = dialogue.map { it.runId },
+                parts = dialogue.map { it.runPart },
+                forceGoogle = forceGoogle,
+            )
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            label = "Texte original"
+            note = error.message ?: "Traduction indisponible : texte source conservé."
+            for (bubble in dialogue) {
+                rendered.add(
+                    renderBubble(bitmap, bubble.box, bubble.text, bubble.text, bubble.vertical, bubble.kind, detected)
+                )
+                onPartial?.invoke(PageResult(rendered.toList(), label, note))
+            }
+            return PageResult(rendered.toList(), label, note)
+        }
         label = outcome.engineLabel
         note = outcome.note
         for (index in dialogue.indices) {
             val bubble = dialogue[index]
             val translated = outcome.texts.getOrNull(index).orEmpty()
-            val gated = JunkFilter.accept(bubble.text, translated, lang) ?: continue
+            val gated = if (translated.isBlank()) null else JunkFilter.accept(bubble.text, translated, lang)
+            // Keep the original whenever an individual slot is missing or
+            // unusable, rather than silently dropping that balloon.
+            val visibleText = gated ?: bubble.text
             rendered.add(
-                renderBubble(bitmap, bubble.box, gated, bubble.text, bubble.vertical, bubble.kind, detected)
+                renderBubble(bitmap, bubble.box, visibleText, bubble.text, bubble.vertical, bubble.kind, detected)
             )
             onPartial?.invoke(PageResult(rendered.toList(), label, note))
         }
