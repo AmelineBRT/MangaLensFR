@@ -239,7 +239,8 @@ class TranslatePipeline(
         )
         // Keep grouped OCR regions even if the pixel detector missed the
         // balloon contour; the strict containment gate was dropping real dialogue.
-        val bubbles = includeAllOcrLines(groupedBubbles, ocrResult.lines)
+        // Do not append every raw OCR line here: the default remains bubble-only.
+        val bubbles = groupedBubbles
         // Raw OCR lines, kept for anchoring the vision model's unanchored
         // answers by their text — the lines know where the text physically
         // is even when they never survived into a region.
