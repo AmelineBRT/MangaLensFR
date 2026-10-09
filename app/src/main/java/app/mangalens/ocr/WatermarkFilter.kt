@@ -15,7 +15,10 @@ object WatermarkFilter {
     private val known = listOf(
         "weconics", "wecomics", "webtoon", "scanlation", "scan", "raw",
         "translated by", "translation by", "credits", "credit", "chapter by",
-        "oui comics", "ouicomics", "oui-comics"
+        "oui comics", "ouicomics", "oui-comics", "japanese to english",
+        "japanese > english", "japanese → english", "jp to en",
+        "translated from japanese", "translation from japanese",
+        "日本語から英語", "日本語→英語", "日英翻訳"
     )
 
     fun filter(lines: List<OcrLine>, balloons: List<Rect>, pageWidth: Int, pageHeight: Int): List<OcrLine> {
@@ -43,6 +46,14 @@ object WatermarkFilter {
         // false "balloon" could bleach the artwork beneath the watermark.
         val compact = text.filter { it.isLetterOrDigit() }
         if (text.replace(Regex("\\s+"), " ").contains("oui comics") || compact.contains("ouicomics")) return true
+        // Explicit bilingual translator stamps are noise even when printed over
+        // a balloon or artwork; they must not become a giant, nonsensical card.
+        val explicitStamp = listOf(
+            "japanese to english", "japanese > english", "japanese → english",
+            "jp to en", "translated from japanese", "translation from japanese",
+            "日本語から英語", "日本語→英語", "日英翻訳"
+        )
+        if (explicitStamp.any { text.contains(it) || compact.contains(it.filter { ch -> ch.isLetterOrDigit() }) }) return true
         if (balloons.any { containsMostly(it, line.box) }) return false
 
         val stroke = stroke(line)
