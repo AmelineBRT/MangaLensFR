@@ -22,7 +22,11 @@ import kotlin.math.abs
  * draggable floating button with its status pill, and the long-press quick menu.
  * All methods must be called from the main thread.
  */
-class OverlayController(private val context: Context, private val listener: Listener) {
+class OverlayController(
+    private val context: Context,
+    private val listener: Listener,
+    private val useAccessibilityOverlay: Boolean = false,
+) {
 
     interface Listener {
         fun onTranslateNow()
@@ -92,7 +96,7 @@ class OverlayController(private val context: Context, private val listener: List
         // Keep the ordinary overlay as a fallback if the accessibility service
         // was disabled while MangaLens was already running.
         bubbleViewInAccessibility =
-            MangaLensAccessibilityService.attachOverlay(bubbleView)
+            useAccessibilityOverlay && MangaLensAccessibilityService.attachOverlay(bubbleView)
         if (!bubbleViewInAccessibility) {
             wm.addView(bubbleView, bubbleLp)
         }
