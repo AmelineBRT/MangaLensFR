@@ -146,12 +146,11 @@ class BubbleOverlayView(context: Context) : View(context) {
         runCatching { ResourcesCompat.getFont(context, id) }.getOrNull()
 
     private val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-    // Do not filter the alpha mask: bitmap filtering can create partially
-    // transparent edge pixels when the low-resolution mask is scaled to the
-    // full-resolution balloon. Every interior pixel must remain hard opaque.
+    // Smooth the low-resolution detector mask when it is scaled to the page.
+    // The interior stays opaque; filtering is only used to soften jagged edges.
     private val maskPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         alpha = 255
-        isFilterBitmap = false
+        isFilterBitmap = true
         isDither = false
     }
     private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
