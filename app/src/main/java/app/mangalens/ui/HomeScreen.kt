@@ -66,6 +66,7 @@ import app.mangalens.translate.MyMemoryEngine
 import app.mangalens.translate.LlmEngine
 import app.mangalens.translate.MlKitEngine
 import app.mangalens.translate.ModelCatalog
+import app.mangalens.translate.MicrosoftTranslatorEngine
 import app.mangalens.update.UpdateChecker
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
