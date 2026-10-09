@@ -257,7 +257,7 @@ object BubbleGrouper {
             "ワクワク", "わくわく", "ガタ", "ゴト", "バタ", "ガチャ",
             "カチ", "パチ", "キラキラ", "きらきら", "フラフラ", "ふらふら",
             "ズキッ", "ずきっ", "ドサッ", "どさっ", "ピタ", "ぴた"
-        ).any { compactText.contains(it) }
+        ).any { compactText == it || (compactText.startsWith(it) && compactText.length <= it.length + 2) }
         val sfx = cjk > 0 && (
             commonSfx ||
                 (groupStroke > pageStroke * 1.75f && cjk <= 10) ||
