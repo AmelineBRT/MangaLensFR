@@ -42,6 +42,8 @@ data class RenderBubble(
     val fill: Bitmap? = null,
     /** The original balloon boundary, redrawn above the opaque cleaning fill. */
     val outline: Bitmap? = null,
+    /** Text outside a confirmed balloon is shifted without painting a backing rectangle. */
+    val floatingText: Boolean = false,
 )
 
 /**
@@ -284,6 +286,7 @@ class BubbleOverlayView(context: Context) : View(context) {
             val stamp = erodedStamp(balloon, b.fill, b.bgColor)
             if (stamp != null) return placeClean(b, balloon, stamp, b.fill != null)
         }
+        if (b.floatingText) return placeFloatingText(b, occupied)
         return placeCard(b, occupied)
     }
 
@@ -304,6 +307,47 @@ class BubbleOverlayView(context: Context) : View(context) {
         } else {
             if (prefLum < 100) preferred else 0xFF17181C.toInt()
         }
+    }
+
+    /**
+     * Small lettering on open artwork or narration outside a confirmed balloon.
+     * Keep the source art untouched: the French is offset from the OCR box and
+     * drawn directly, with only a subtle contrasting shadow for legibility.
+     */
+    private fun placeFloatingText(b: RenderBubble, occupied: List<RectF>): Placed? {
+        val screenW = (if (width > 0) width else resources.displayMetrics.widthPixels).toFloat()
+        val screenH = (if (height > 0) height else resources.displayMetrics.heightPixels).toFloat()
+        val tp = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = b.textColor
+            textSize = dp((b.box.height() / resources.displayMetrics.density * 0.72f).coerceIn(9f, 15f) * textScale)
+            typeface = dialogueFace
+            setShadowLayer(dp(1.5f), 0f, dp(0.5f), if (b.textColor == Color.WHITE) Color.BLACK else Color.WHITE)
+        }
+        val maxWidth = (screenW * 0.58f).toInt().coerceAtLeast(dp(48f).toInt())
+        var layout = StaticLayout.Builder
+            .obtain(b.translated, 0, b.translated.length, tp, maxWidth)
+            .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+            .setLineSpacing(0f, 1.02f)
+            .setIncludePad(false)
+            .build()
+        while (layout.height > dp(72f) && tp.textSize > dp(9f)) {
+            tp.textSize -= dp(1f)
+            layout = StaticLayout.Builder
+                .obtain(b.translated, 0, b.translated.length, tp, maxWidth)
+                .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+                .setLineSpacing(0f, 1.02f)
+                .setIncludePad(false)
+                .build()
+        }
+        val offset = dp(5f)
+        var x = b.box.left + offset
+        var y = b.box.bottom + dp(2f)
+        if (y + layout.height > screenH - dp(2f)) y = b.box.top - layout.height - dp(2f)
+        x = x.coerceIn(dp(2f), (screenW - layout.width - dp(2f)).coerceAtLeast(dp(2f)))
+        y = y.coerceIn(dp(2f), (screenH - layout.height - dp(2f)).coerceAtLeast(dp(2f)))
+        val bounds = RectF(x, y, x + layout.width, y + layout.height)
+        nudgeClear(bounds, occupied, screenH)
+        return Placed(bounds, layout, bounds.left, bounds.top, Color.TRANSPARENT)
     }
 
     /**
