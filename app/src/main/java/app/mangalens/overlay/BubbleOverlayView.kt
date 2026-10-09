@@ -283,7 +283,7 @@ class BubbleOverlayView(context: Context) : View(context) {
         if (b.translated.isBlank()) return null
         val balloon = b.balloon
         if (balloon != null) {
-            val stamp = erodedStamp(balloon, b.fill, b.bgColor)
+            val stamp = erodedStamp(balloon, b.fill)
             if (stamp != null) return placeClean(b, balloon, stamp, b.fill != null)
         }
         if (b.floatingText) return placeFloatingText(b, occupied)
@@ -362,13 +362,13 @@ class BubbleOverlayView(context: Context) : View(context) {
      * cleaned balloon. Null when nothing survives (a sliver of a mask); that
      * bubble falls back to the rounded card instead of stamping nothing.
      */
-    private fun erodedStamp(balloon: Balloon, fill: Bitmap?, baseColor: Int): Bitmap? {
+    private fun erodedStamp(balloon: Balloon, fill: Bitmap?): Bitmap? {
         val w = balloon.maskW
         val h = balloon.maskH
         val mask = balloon.mask
         if (w < 1 || h < 1 || mask.size < w * h) return null
 
-        // The cleaning stamp uses the sampled balloon colour and is fully opaque
+        // The cleaning stamp is deliberately pure white and fully opaque
         // inside the detected balloon. Never reuse a sampled/gradient fill here:
         // the reader must not see the original lettering or artwork through the
         // translation background.
@@ -376,7 +376,7 @@ class BubbleOverlayView(context: Context) : View(context) {
         var any = false
         for (i in mask.indices) {
             if (!mask[i]) continue
-            px[i] = Color.argb(255, Color.red(baseColor), Color.green(baseColor), Color.blue(baseColor))
+            px[i] = Color.WHITE
             any = true
         }
         if (!any) return null
@@ -709,7 +709,7 @@ class BubbleOverlayView(context: Context) : View(context) {
                 // window itself is translucent, but the pixels of a cleaned
                 // balloon must never inherit alpha from the source lettering.
                 // The bitmap contains only 0/255 alpha values and the
-                // window itself is at alpha 1.0, so the colour stamp completely
+                // window itself is at alpha 1.0, so the white stamp completely
                 // replaces the pixels below it.
                 maskPaint.alpha = 255
                 maskPaint.colorFilter = p.tint
