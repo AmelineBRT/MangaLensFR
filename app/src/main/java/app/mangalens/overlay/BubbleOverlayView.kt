@@ -339,13 +339,16 @@ class BubbleOverlayView(context: Context) : View(context) {
                 .setIncludePad(false)
                 .build()
         }
+        var textWidth = 0f
+        for (i in 0 until layout.lineCount) textWidth = maxOf(textWidth, layout.getLineWidth(i))
+        val drawnWidth = textWidth.toInt().coerceAtLeast(dp(24f).toInt()).coerceAtMost(maxWidth)
         val offset = dp(5f)
         var x = b.box.left + offset
         var y = b.box.bottom + dp(2f)
         if (y + layout.height > screenH - dp(2f)) y = b.box.top - layout.height - dp(2f)
-        x = x.coerceIn(dp(2f), (screenW - layout.width - dp(2f)).coerceAtLeast(dp(2f)))
+        x = x.coerceIn(dp(2f), (screenW - drawnWidth - dp(2f)).coerceAtLeast(dp(2f)))
         y = y.coerceIn(dp(2f), (screenH - layout.height - dp(2f)).coerceAtLeast(dp(2f)))
-        val bounds = RectF(x, y, x + layout.width, y + layout.height)
+        val bounds = RectF(x, y, x + drawnWidth, y + layout.height)
         nudgeClear(bounds, occupied, screenH)
         return Placed(bounds, layout, bounds.left, bounds.top, Color.TRANSPARENT)
     }
@@ -365,7 +368,7 @@ class BubbleOverlayView(context: Context) : View(context) {
         val mask = balloon.mask
         if (w < 1 || h < 1 || mask.size < w * h) return null
 
-        // The cleaning stamp is deliberately pure white and fully opaque
+        // The cleaning stamp uses the sampled balloon colour and is fully opaque
         // inside the detected balloon. Never reuse a sampled/gradient fill here:
         // the reader must not see the original lettering or artwork through the
         // translation background.
@@ -706,7 +709,7 @@ class BubbleOverlayView(context: Context) : View(context) {
                 // window itself is translucent, but the pixels of a cleaned
                 // balloon must never inherit alpha from the source lettering.
                 // The bitmap contains only 0/255 alpha values and the
-                // window itself is at alpha 1.0, so the white stamp completely
+                // window itself is at alpha 1.0, so the colour stamp completely
                 // replaces the pixels below it.
                 maskPaint.alpha = 255
                 maskPaint.colorFilter = p.tint
