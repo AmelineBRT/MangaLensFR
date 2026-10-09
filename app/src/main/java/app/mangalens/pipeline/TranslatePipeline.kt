@@ -264,12 +264,33 @@ class TranslatePipeline(
         )
     }
 
+    /** Recognizes isolated, oversized Japanese sound effects before raw OCR lines are added. */
+    private fun looksLikeSfx(text: String, line: OcrLine, lines: List<OcrLine>): Boolean {
+        val compact = text.filterNot { it.isWhitespace() || it.isPunctuation() }
+        val known = listOf(
+            "ドキドキ", "どきどき", "キュン", "きゅん", "ゴゴゴ", "ガーン",
+            "ギュッ", "ぎゅっ", "バン", "ドン", "ザワザワ", "ざわざわ",
+            "ワクワク", "わくわく", "ガタ", "ゴト", "バタ", "ガチャ",
+            "カチ", "パチ", "キラキラ", "きらきら", "フラフラ", "ふらふら",
+            "ズキッ", "ずきっ", "ドサッ", "どさっ", "ピタ", "ぴた"
+        ).any { compact == it || (compact.startsWith(it) && compact.length <= it.length + 2) }
+        if (known) return true
+        val cjk = Script.cjkCount(text)
+        if (cjk == 0 || cjk > 10) return false
+        val stroke = if (line.vertical) line.box.width() else line.box.height()
+        val strokes = lines.map { if (it.vertical) it.box.width() else it.box.height() }.sorted()
+        val median = strokes.getOrNull(strokes.size / 2)?.coerceAtLeast(8) ?: return false
+        val kanaRatio = Script.katakanaCount(text).toFloat() / cjk
+        return stroke > median * 1.75f || (kanaRatio >= 0.8f && cjk <= 8 && stroke > median * 1.2f)
+    }
+
     /** Ensures every usable OCR line remains translatable even when grouping or balloon detection rejects it. */
     private fun includeAllOcrLines(grouped: List<Bubble>, lines: List<OcrLine>): List<Bubble> {
         val out = grouped.toMutableList()
         for (line in lines) {
             val text = Script.clean(line.text)
             if (text.length < 2 || line.box.width() < 2 || line.box.height() < 2) continue
+            if (looksLikeSfx(text, line, lines)) continue
             val alreadyCovered = out.any { b ->
                 val ix = maxOf(0, minOf(b.box.right, line.box.right) - maxOf(b.box.left, line.box.left))
                 val iy = maxOf(0, minOf(b.box.bottom, line.box.bottom) - maxOf(b.box.top, line.box.top))
