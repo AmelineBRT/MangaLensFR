@@ -59,6 +59,8 @@ data class AppSettings(
      * unrelated — without this there is no way to tell which from the screen.
      */
     val diagnostics: Boolean = false,
+    /** Use Android trusted accessibility overlay instead of the normal app overlay (opt-in test mode). */
+    val useAccessibilityOverlay: Boolean = false,
     val textScale: Float = 1.0f,
     val bgOpacity: Float = 1.0f,
     val stabilityMs: Int = 350,
@@ -99,6 +101,7 @@ private object Keys {
     val AI_REASONING = stringPreferencesKey("ai_reasoning")
     val DATA_SAVER = booleanPreferencesKey("data_saver")
     val DIAGNOSTICS = booleanPreferencesKey("diagnostics")
+    val USE_ACCESSIBILITY_OVERLAY = booleanPreferencesKey("use_accessibility_overlay")
     val TEXT_SCALE = floatPreferencesKey("text_scale")
     val BG_OPACITY = floatPreferencesKey("bg_opacity")
     val STABILITY_MS = intPreferencesKey("stability_ms")
@@ -231,6 +234,7 @@ internal fun settingsFromPreferences(p: Preferences, credentials: Preferences = 
         aiReasoning = enumOr(p[Keys.AI_REASONING], d.aiReasoning),
         dataSaver = p[Keys.DATA_SAVER] ?: d.dataSaver,
         diagnostics = p[Keys.DIAGNOSTICS] ?: d.diagnostics,
+        useAccessibilityOverlay = p[Keys.USE_ACCESSIBILITY_OVERLAY] ?: d.useAccessibilityOverlay,
         textScale = p[Keys.TEXT_SCALE] ?: d.textScale,
         bgOpacity = p[Keys.BG_OPACITY] ?: d.bgOpacity,
         stabilityMs = p[Keys.STABILITY_MS] ?: d.stabilityMs,
@@ -262,6 +266,7 @@ class SettingsRepository(private val context: Context) {
     suspend fun setAiReasoning(v: AiReasoning) = context.settingsStore.edit { it[Keys.AI_REASONING] = v.name }
     suspend fun setDataSaver(v: Boolean) = context.settingsStore.edit { it[Keys.DATA_SAVER] = v }
     suspend fun setDiagnostics(v: Boolean) = context.settingsStore.edit { it[Keys.DIAGNOSTICS] = v }
+    suspend fun setUseAccessibilityOverlay(v: Boolean) = context.settingsStore.edit { it[Keys.USE_ACCESSIBILITY_OVERLAY] = v }
     suspend fun setTextScale(v: Float) = context.settingsStore.edit { it[Keys.TEXT_SCALE] = v }
     suspend fun setBgOpacity(v: Float) = context.settingsStore.edit { it[Keys.BG_OPACITY] = v }
     suspend fun setStabilityMs(v: Int) = context.settingsStore.edit { it[Keys.STABILITY_MS] = v }
