@@ -266,7 +266,7 @@ class TranslatePipeline(
 
     /** Recognizes isolated, oversized Japanese sound effects before raw OCR lines are added. */
     private fun looksLikeSfx(text: String, line: OcrLine, lines: List<OcrLine>): Boolean {
-        val compact = text.filterNot { it.isWhitespace() || it.isPunctuation() }
+        val compact = text.filterNot { it.isWhitespace() || !it.isLetterOrDigit() }
         val known = listOf(
             "ドキドキ", "どきどき", "キュン", "きゅん", "ゴゴゴ", "ガーン",
             "ギュッ", "ぎゅっ", "バン", "ドン", "ザワザワ", "ざわざわ",
