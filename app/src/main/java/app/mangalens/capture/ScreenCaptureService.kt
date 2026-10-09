@@ -346,7 +346,11 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
             }
         }, captureHandler)
         setupDisplay()
+        // Starting screen sharing must not trigger OCR/translation by itself.
+        // Show the floating control first and wait for the reader to tap it.
+        enPause = true
         controller = OverlayController(this, this, useAccessibilityOverlay).also { it.attach() }
+        controller?.setPaused(true)
         controller?.bubbleView?.let { v ->
             v.textScale = settings.textScale
             v.bgOpacity = settings.bgOpacity
@@ -355,7 +359,7 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
         refreshOverlayMask()
         running.value = true
         startTicker()
-        setPill("MangaLens est actif — ouvrez votre manhwa", 2600)
+        setPill("En attente — touchez le bouton flottant pour démarrer", 3200)
     }
 
     private fun displaySize(): Triple<Int, Int, Int> {
