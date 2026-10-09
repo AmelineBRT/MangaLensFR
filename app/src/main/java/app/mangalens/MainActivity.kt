@@ -3,6 +3,7 @@ package app.mangalens
 import android.Manifest
 import android.app.Activity
 import android.content.Intent
+import android.content.ComponentName
 import android.content.pm.PackageManager
 import android.media.projection.MediaProjectionManager
 import android.net.Uri
@@ -70,8 +71,37 @@ class MainActivity : ComponentActivity() {
             openOverlaySettings()
             return
         }
+        if (!isAccessibilityOverlayEnabled()) {
+            openAccessibilitySettings()
+            return
+        }
         val mpm = getSystemService(MediaProjectionManager::class.java)
         projectionLauncher.launch(mpm.createScreenCaptureIntent())
+    }
+
+    private fun isAccessibilityOverlayEnabled(): Boolean {
+        val enabled = Settings.Secure.getString(
+            contentResolver,
+            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+        ).orEmpty()
+        val component = ComponentName(
+            this,
+            app.mangalens.overlay.MangaLensAccessibilityService::class.java
+        ).flattenToString()
+        return Settings.Secure.getInt(
+            contentResolver,
+            Settings.Secure.ACCESSIBILITY_ENABLED,
+            0
+        ) == 1 && enabled.split(':').any { it.equals(component, ignoreCase = true) }
+    }
+
+    private fun openAccessibilitySettings() {
+        Toast.makeText(
+            this,
+            "Active le service d’accessibilité de MangaLens pour rendre les bulles totalement opaques, puis reviens ici et appuie de nouveau sur Démarrer.",
+            Toast.LENGTH_LONG
+        ).show()
+        startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
     }
 
     private fun openOverlaySettings() {
