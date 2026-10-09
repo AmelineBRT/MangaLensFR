@@ -29,6 +29,7 @@ class TranslationService(
 ) {
 
     private val google = GoogleFreeEngine()
+    private val myMemory = MyMemoryEngine()
     private val mlkit = MlKitEngine()
 
     data class Outcome(val texts: List<String>, val engineLabel: String, val note: String? = null)
@@ -50,9 +51,11 @@ class TranslationService(
     ): Outcome {
         val chain: List<TranslationEngine> = when {
             forceGoogle -> listOf(google)
-            settings.engine == EngineKind.LLM -> listOf(LlmEngine(settings, glossary, cast), google)
-            settings.engine == EngineKind.GOOGLE -> listOf(google)
-            else -> listOf(mlkit, google)
+            settings.engine == EngineKind.LLM -> listOf(LlmEngine(settings, glossary, cast), google, myMemory, mlkit)
+            settings.engine == EngineKind.GOOGLE -> listOf(google, myMemory, mlkit)
+            settings.engine == EngineKind.MYMEMORY -> listOf(myMemory, google, mlkit)
+            settings.engine == EngineKind.DEEPL -> listOf(DeepLEngine(settings.deeplApiKey), google, myMemory, mlkit)
+            else -> listOf(mlkit, google, myMemory)
         }
         var lastError: Exception? = null
         for (engine in chain) {
