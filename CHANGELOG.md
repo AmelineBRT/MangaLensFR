@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.12.2
+
+- Tightened balloon shape/content gates to reduce false positives on panels and artwork being painted white.
+- Restored stricter OCR-to-balloon association so unrelated text is less likely to trigger a balloon cleaning mask.
+- Smoothed scaled mask edges to reduce the blocky black-and-white balloon contours; translation engine and reading order remain unchanged.
+
+## 0.12.1
+
+- Removed the synthetic source-outline redraw that could create a visible contour around cleaned balloons.
+- Balloon cleaning now paints the complete hole-filled interior with fully opaque pixels, including over the original lettering.
+- Increased analysis resolution and relaxed only the segmentation gates that were too strict for anti-aliased/small bubbles; translation engine and reading order are unchanged.
+- Relaxed OCR-to-balloon association so text near a bubble edge is not discarded unnecessarily.
+
 ## 0.10.1
 
 Tap-to-turn readers are noticed on the first tap.

@@ -5,8 +5,6 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import android.graphics.PorterDuff
-import android.graphics.PorterDuffColorFilter
 import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Typeface
@@ -40,8 +38,6 @@ data class RenderBubble(
      * paper is not one flat colour; null means fill with [bgColor].
      */
     val fill: Bitmap? = null,
-    /** The original balloon boundary, redrawn above the opaque cleaning fill. */
-    val outline: Bitmap? = null,
 )
 
 /**
@@ -71,8 +67,6 @@ class BubbleOverlayView(context: Context) : View(context) {
         val card: RectF? = null,
         val mask: Bitmap? = null,
         val maskDst: RectF? = null,
-        val tint: PorterDuffColorFilter? = null,
-        val outline: Bitmap? = null,
         /**
          * Rectangle wiped to the sampled page color before the card paints —
          * the original lettering of an on-art vertical column, hidden without
@@ -152,15 +146,13 @@ class BubbleOverlayView(context: Context) : View(context) {
         runCatching { ResourcesCompat.getFont(context, id) }.getOrNull()
 
     private val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-    // Do not filter the alpha mask: bitmap filtering can create partially
-    // transparent edge pixels when the low-resolution mask is scaled to the
-    // full-resolution balloon. Every interior pixel must remain hard opaque.
+    // Smooth the low-resolution detector mask when it is scaled to the page.
+    // The interior stays opaque; filtering is only used to soften jagged edges.
     private val maskPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         alpha = 255
-        isFilterBitmap = false
+        isFilterBitmap = true
         isDither = false
     }
-    private val outlinePaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeWidth = dp(1f)
@@ -281,8 +273,8 @@ class BubbleOverlayView(context: Context) : View(context) {
         if (b.translated.isBlank()) return null
         val balloon = b.balloon
         if (balloon != null) {
-            val stamp = erodedStamp(balloon, b.fill)
-            if (stamp != null) return placeClean(b, balloon, stamp, b.fill != null)
+            val stamp = opaqueStamp(balloon)
+            if (stamp != null) return placeClean(b, balloon, stamp)
         }
         return placeCard(b, occupied)
     }
@@ -307,29 +299,24 @@ class BubbleOverlayView(context: Context) : View(context) {
     }
 
     /**
-     * The balloon interior as a tintable stamp, shrunk by one mask cell: a
-     * cell survives only when all four neighbours are interior too, and the
-     * mask border always dies. The ring this gives up is what keeps the
-     * balloon's own outline stroke visible around the fill — a fill that
-     * erases the outline reads as a hole punched in the page rather than a
-     * cleaned balloon. Null when nothing survives (a sliver of a mask); that
-     * bubble falls back to the rounded card instead of stamping nothing.
+     * Builds the opaque cleaning mask from the detector's already hole-filled
+     * balloon interior. There is deliberately no erosion and no source-outline
+     * redraw: the original lettering must be covered completely, while the
+     * actual balloon border remains untouched because it is outside this mask.
      */
-    private fun erodedStamp(balloon: Balloon, fill: Bitmap?): Bitmap? {
+    private fun opaqueStamp(balloon: Balloon): Bitmap? {
         val w = balloon.maskW
         val h = balloon.maskH
         val mask = balloon.mask
         if (w < 1 || h < 1 || mask.size < w * h) return null
-
-        // The cleaning stamp is deliberately pure white and fully opaque
-        // inside the detected balloon. Never reuse a sampled/gradient fill here:
-        // the reader must not see the original lettering or artwork through the
-        // translation background.
         val px = IntArray(w * h)
         var any = false
-        for (i in mask.indices) {
+        // Deliberately pure opaque white. The user requirement is to hide every
+        // source glyph completely, including on coloured/gradient balloons.
+        val white = Color.WHITE
+        for (i in 0 until w * h) {
             if (!mask[i]) continue
-            px[i] = Color.WHITE
+            px[i] = white
             any = true
         }
         if (!any) return null
@@ -350,7 +337,7 @@ class BubbleOverlayView(context: Context) : View(context) {
      * The fill is opaque; the whole point is that the original lettering
      * must not ghost through the English.
      */
-    private fun placeClean(b: RenderBubble, balloon: Balloon, stamp: Bitmap, inpainted: Boolean): Placed? {
+    private fun placeClean(b: RenderBubble, balloon: Balloon, stamp: Bitmap): Placed? {
         val sfx = b.kind == BubbleKind.SFX
         val box = balloon.box
         val tp = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -443,11 +430,6 @@ class BubbleOverlayView(context: Context) : View(context) {
             bg = fill,
             mask = stamp,
             maskDst = RectF(box),
-            // The stamp is fully opaque. The original boundary is painted
-            // separately so the cleaning can reach every interior pixel.
-            // No outline is reconstructed or painted by MangaLensFR.
-            tint = null,
-            outline = b.outline,
         )
     }
 
@@ -663,13 +645,11 @@ class BubbleOverlayView(context: Context) : View(context) {
                 // balloon must never inherit alpha from the source lettering.
                 // The bitmap contains only 0/255 alpha values and the
                 // window itself is at alpha 1.0, so the white stamp completely
-                // replaces the pixels below it.
+                // The stamp is already ARGB-opaque. Do not redraw or synthesize
+                // the source outline: that was the artificial contour seen in 0.12.0.
                 maskPaint.alpha = 255
-                maskPaint.colorFilter = p.tint
+                maskPaint.colorFilter = null
                 canvas.drawBitmap(p.mask, null, p.maskDst, maskPaint)
-                p.outline?.let { outline ->
-                    canvas.drawBitmap(outline, null, p.maskDst, outlinePaint)
-                }
             } else if (p.card != null) {
                 p.wipe?.let { wipe ->
                     bgPaint.color = Color.argb(
