@@ -374,10 +374,31 @@ class BubbleOverlayView(context: Context) : View(context) {
         // translation background.
         val px = IntArray(w * h)
         var any = false
-        for (i in mask.indices) {
-            if (!mask[i]) continue
-            px[i] = Color.WHITE
-            any = true
+        // Slightly dilate the cleaning mask inside its existing bounds. OCR
+        // boxes near the rim often include a few pixels of glyph overhang;
+        // using only the raw interior mask leaves those original strokes
+        // visible beside an otherwise correctly translated balloon.
+        for (y in 0 until h) {
+            for (x in 0 until w) {
+                var inside = mask[y * w + x]
+                if (!inside) {
+                    for (dy in -1..1) {
+                        for (dx in -1..1) {
+                            val nx = x + dx
+                            val ny = y + dy
+                            if (nx in 0 until w && ny in 0 until h && mask[ny * w + nx]) {
+                                inside = true
+                                break
+                            }
+                        }
+                        if (inside) break
+                    }
+                }
+                if (inside) {
+                    px[y * w + x] = Color.WHITE
+                    any = true
+                }
+            }
         }
         if (!any) return null
         return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
