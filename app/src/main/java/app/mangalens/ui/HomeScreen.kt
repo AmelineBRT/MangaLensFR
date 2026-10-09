@@ -531,6 +531,7 @@ private fun EngineCard(settings: AppSettings, repo: SettingsRepository) {
                                     EngineKind.GOOGLE -> GoogleFreeEngine().translate(sample, SourceLang.AUTO)
                                     EngineKind.MYMEMORY -> MyMemoryEngine().translate(sample, SourceLang.AUTO)
                                     EngineKind.DEEPL -> DeepLEngine(settings.deeplApiKey).translate(sample, SourceLang.AUTO)
+                                    EngineKind.MICROSOFT -> MicrosoftTranslatorEngine(settings.microsoftApiKey, settings.microsoftRegion).translate(sample, SourceLang.AUTO)
                                 }
                                 "“I'll stay with you. It's okay.” → “" + out.first() + "”"
                             } catch (e: Exception) {
