@@ -1047,6 +1047,9 @@ class ScreenCaptureService : Service(), OverlayController.Listener {
             setPill("enPause", 1600)
         } else {
             setPill("actif", 1200)
+            // In manual mode the first tap after sharing starts one pass;
+            // it must not silently leave the reader with an idle overlay.
+            if (settings.mode == CaptureMode.MANUAL) onTranslateNow()
         }
         controller?.setPaused(enPause)
         updateNotification()
