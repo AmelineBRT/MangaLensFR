@@ -250,9 +250,18 @@ object BubbleGrouper {
         // whether to stylize (THUD) or leave the art alone. CJK only: outsized
         // Latin lettering is a title or a shout, not onomatopoeia to caption.
         val katakanaRatio = if (cjk > 0) Script.katakanaCount(text).toFloat() / cjk else 0f
+        val compactText = text.filterNot { it.isWhitespace() || it.isPunctuation() }
+        val commonSfx = listOf(
+            "ドキドキ", "どきどき", "キュン", "きゅん", "ゴゴゴ", "ガーン",
+            "ギュッ", "ぎゅっ", "バン", "ドン", "ザワザワ", "ざわざわ",
+            "ワクワク", "わくわく", "ガタ", "ゴト", "バタ", "ガチャ",
+            "カチ", "パチ", "キラキラ", "きらきら", "フラフラ", "ふらふら",
+            "ズキッ", "ずきっ", "ドサッ", "どさっ", "ピタ", "ぴた"
+        ).any { compactText.contains(it) }
         val sfx = cjk > 0 && (
-            (groupStroke > pageStroke * 2.1f && cjk <= 8) ||
-                (katakanaRatio >= 0.8f && cjk <= 4 && groupStroke > pageStroke * 1.45f)
+            commonSfx ||
+                (groupStroke > pageStroke * 1.75f && cjk <= 10) ||
+                (katakanaRatio >= 0.8f && cjk <= 8 && groupStroke > pageStroke * 1.2f)
             )
 
         return Bubble(text, union, vertical, if (sfx) BubbleKind.SFX else BubbleKind.DIALOGUE)
