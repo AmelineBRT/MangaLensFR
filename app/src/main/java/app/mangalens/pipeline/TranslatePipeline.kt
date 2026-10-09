@@ -411,11 +411,12 @@ class TranslatePipeline(
             val f: suspend (PageResult) -> Unit = { pr -> emit(pr.copy(bubbles = soleClaimants(pr.bubbles))) }
             f
         }
-        val dispatchBubbles = if (translateOutsideBalloons) {
-            includeAllOcrLines(bubbles, ocrResult.lines)
-        } else {
-            bubbles
-        }
+        // Always recover usable OCR lines that grouping omitted (for example,
+        // short or unusually spaced text inside a real speech balloon). The OCR
+        // lines have already passed WatermarkFilter, and known SFX are excluded
+        // by includeAllOcrLines. This is also useful in the normal bubble-only
+        // mode because the recovered line can still bind to a detected balloon.
+        val dispatchBubbles = includeAllOcrLines(bubbles, ocrResult.lines)
         val raw = dispatch(
             bitmap, settings, analysis.exclusions, wrapped,
             ocrResult, dispatchBubbles, detected, analysis.anchorLines, analysis.ignoreTop, analysis.ignoreBottom, useVision,
