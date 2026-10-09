@@ -18,7 +18,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 
-enum class EngineKind { GOOGLE, LLM, MLKIT }
+enum class EngineKind { GOOGLE, MYMEMORY, DEEPL, LLM, MLKIT }
 enum class LlmProvider { ANTHROPIC, OPENAI, GEMINI, OPENROUTER, CUSTOM }
 enum class SourceLang { AUTO, EN, KO, JA, ZH }
 enum class CaptureMode { AUTO, MANUAL }
@@ -45,6 +45,7 @@ data class AppSettings(
     val engine: EngineKind = EngineKind.GOOGLE,
     val provider: LlmProvider = LlmProvider.ANTHROPIC,
     val apiKey: String = "",
+    val deeplApiKey: String = "",
     val model: String = "",
     val customUrl: String = "",
     val sourceLang: SourceLang = SourceLang.AUTO,
@@ -113,6 +114,7 @@ private object Keys {
     private val API_KEY_GEMINI = stringPreferencesKey("api_key_gemini")
     private val API_KEY_OPENROUTER = stringPreferencesKey("api_key_openrouter")
     private val API_KEY_CUSTOM = stringPreferencesKey("api_key_custom")
+    val DEEPL_API_KEY = stringPreferencesKey("api_key_deepl")
 
     private val MODEL_ANTHROPIC = stringPreferencesKey("model_anthropic")
     private val MODEL_OPENAI = stringPreferencesKey("model_openai")
@@ -226,6 +228,7 @@ internal fun settingsFromPreferences(p: Preferences, credentials: Preferences = 
         engine = enumOr(p[Keys.ENGINE], d.engine),
         provider = provider,
         apiKey = credentials[Keys.apiKey(provider)] ?: d.apiKey,
+        deeplApiKey = credentials[Keys.DEEPL_API_KEY] ?: d.deeplApiKey,
         model = p[Keys.model(provider)] ?: d.model,
         customUrl = p[Keys.CUSTOM_URL] ?: d.customUrl,
         sourceLang = enumOr(p[Keys.SOURCE_LANG], d.sourceLang),
@@ -257,6 +260,7 @@ class SettingsRepository(private val context: Context) {
     suspend fun setProvider(v: LlmProvider) = context.settingsStore.edit { it[Keys.PROVIDER] = v.name }
     suspend fun setApiKey(provider: LlmProvider, v: String) =
         context.credentialsStore.edit { it[Keys.apiKey(provider)] = v }
+    suspend fun setDeepLApiKey(v: String) = context.credentialsStore.edit { it[Keys.DEEPL_API_KEY] = v }
     suspend fun setModel(provider: LlmProvider, v: String) =
         context.settingsStore.edit { it[Keys.model(provider)] = v }
     suspend fun setCustomUrl(v: String) = context.settingsStore.edit { it[Keys.CUSTOM_URL] = v }
