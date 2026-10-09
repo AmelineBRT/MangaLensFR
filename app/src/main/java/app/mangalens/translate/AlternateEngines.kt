@@ -57,8 +57,8 @@ class MyMemoryEngine : TranslationEngine {
             SourceLang.JA -> "ja"
             SourceLang.ZH -> "zh"
             SourceLang.AUTO -> when {
-                Script.koreanCount(text) > Script.cjkCount(text) * 0.45f -> "ko"
-                Script.japaneseCount(text) > 0 -> "ja"
+                text.any { it.code in 0xAC00..0xD7AF } -> "ko"
+                text.any { it.code in 0x3040..0x30FF || it.code in 0x4E00..0x9FFF } -> "ja"
                 else -> "zh"
             }
         }
