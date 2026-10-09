@@ -15,7 +15,10 @@ object WatermarkFilter {
     private val known = listOf(
         "weconics", "wecomics", "webtoon", "scanlation", "scan", "raw",
         "translated by", "translation by", "credits", "credit", "chapter by",
-        "oui comics", "ouicomics", "oui-comics"
+        "oui comics", "ouicomics", "oui-comics", "japanese to english",
+        "japanese > english", "japanese → english", "jp to en",
+        "translated from japanese", "translation from japanese",
+        "日本語から英語", "日本語→英語", "日英翻訳"
     )
 
     fun filter(lines: List<OcrLine>, balloons: List<Rect>, pageWidth: Int, pageHeight: Int): List<OcrLine> {
@@ -43,6 +46,37 @@ object WatermarkFilter {
         // false "balloon" could bleach the artwork beneath the watermark.
         val compact = text.filter { it.isLetterOrDigit() }
         if (text.replace(Regex("\\s+"), " ").contains("oui comics") || compact.contains("ouicomics")) return true
+        // Explicit bilingual translator stamps are noise even when printed over
+        // a balloon or artwork; they must not become a giant, nonsensical card.
+        val explicitStamp = listOf(
+            "japanese to english", "japanese > english", "japanese → english",
+            "jp to en", "translated from japanese", "translation from japanese",
+            "日本語から英語", "日本語→英語", "日英翻訳"
+        )
+        if (explicitStamp.any { text.contains(it) || compact.contains(it.filter { ch -> ch.isLetterOrDigit() }) }) return true
+
+        // Scan credits are often split into separate OCR boxes, e.g. one box
+        // reads "Japanese" and the next reads "to English". Match nearby
+        // fragments as a group so neither half is translated as manga text.
+        val stampFragment = listOf("japanese", "english", "translated", "translation", "scanlation")
+            .any { text.contains(it) }
+        if (stampFragment) {
+            val nearbyStampFragment = all.any { other ->
+                other !== line &&
+                    listOf("japanese", "english", "translated", "translation", "scanlation")
+                        .any { Script.clean(other.text).lowercase().contains(it) } &&
+                    Rect.intersects(expanded(line.box, (medianStroke * 8).coerceAtLeast(36)), other.box)
+            }
+            if (nearbyStampFragment) return true
+            // Standalone, small "Japanese"/"English" labels are also common
+            // in bilingual scan watermarks. Keep normal-sized dialogue intact.
+            if ((text.contains("japanese") || text.contains("english")) &&
+                stroke(line) <= (medianStroke * 0.9f).toInt().coerceAtLeast(5) &&
+                all.none { other ->
+                    other !== line && Rect.intersects(expanded(line.box, stroke(line) * 3), other.box)
+                }
+            ) return true
+        }
         if (balloons.any { containsMostly(it, line.box) }) return false
 
         val stroke = stroke(line)

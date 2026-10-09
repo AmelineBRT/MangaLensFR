@@ -3,6 +3,7 @@ package app.mangalens
 import android.Manifest
 import android.app.Activity
 import android.content.Intent
+import android.content.ComponentName
 import android.content.pm.PackageManager
 import android.media.projection.MediaProjectionManager
 import android.net.Uri
@@ -14,6 +15,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import app.mangalens.capture.ScreenCaptureService
 import app.mangalens.settings.SettingsRepository
 import app.mangalens.ui.HomeScreen
@@ -31,6 +34,7 @@ class MainActivity : ComponentActivity() {
                     .setAction(ScreenCaptureService.ACTION_START)
                     .putExtra(ScreenCaptureService.EXTRA_RESULT_CODE, result.resultCode)
                     .putExtra(ScreenCaptureService.EXTRA_RESULT_DATA, data)
+                    .putExtra(ScreenCaptureService.EXTRA_USE_ACCESSIBILITY, pendingUseAccessibility)
                 ContextCompat.startForegroundService(this, intent)
                 Toast.makeText(
                     this,
@@ -70,8 +74,46 @@ class MainActivity : ComponentActivity() {
             openOverlaySettings()
             return
         }
-        val mpm = getSystemService(MediaProjectionManager::class.java)
-        projectionLauncher.launch(mpm.createScreenCaptureIntent())
+        lifecycleScope.launch {
+            val useAccessibility = repo.current().useAccessibilityOverlay
+            if (useAccessibility && !isAccessibilityOverlayEnabled()) {
+                openAccessibilitySettings()
+                return@launch
+            }
+            val mpm = getSystemService(MediaProjectionManager::class.java)
+            val captureIntent = mpm.createScreenCaptureIntent()
+            // Carry the choice into the service so the renderer does not depend
+            // on a race between its settings collector and projection startup.
+            pendingUseAccessibility = useAccessibility
+            projectionLauncher.launch(captureIntent)
+        }
+    }
+
+    private var pendingUseAccessibility: Boolean = false
+
+    private fun isAccessibilityOverlayEnabled(): Boolean {
+        val enabled = Settings.Secure.getString(
+            contentResolver,
+            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+        ).orEmpty()
+        val component = ComponentName(
+            this,
+            app.mangalens.overlay.MangaLensAccessibilityService::class.java
+        ).flattenToString()
+        return Settings.Secure.getInt(
+            contentResolver,
+            Settings.Secure.ACCESSIBILITY_ENABLED,
+            0
+        ) == 1 && enabled.split(':').any { it.equals(component, ignoreCase = true) }
+    }
+
+    private fun openAccessibilitySettings() {
+        Toast.makeText(
+            this,
+            "Active le service d’accessibilité de MangaLens pour rendre les bulles totalement opaques, puis reviens ici et appuie de nouveau sur Démarrer.",
+            Toast.LENGTH_LONG
+        ).show()
+        startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
     }
 
     private fun openOverlaySettings() {

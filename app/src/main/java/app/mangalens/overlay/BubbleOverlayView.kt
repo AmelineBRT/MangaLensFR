@@ -42,6 +42,8 @@ data class RenderBubble(
     val fill: Bitmap? = null,
     /** The original balloon boundary, redrawn above the opaque cleaning fill. */
     val outline: Bitmap? = null,
+    /** Text outside a confirmed balloon is shifted without painting a backing rectangle. */
+    val floatingText: Boolean = false,
 )
 
 /**
@@ -284,6 +286,7 @@ class BubbleOverlayView(context: Context) : View(context) {
             val stamp = erodedStamp(balloon, b.fill)
             if (stamp != null) return placeClean(b, balloon, stamp, b.fill != null)
         }
+        if (b.floatingText) return placeFloatingText(b, occupied)
         return placeCard(b, occupied)
     }
 
@@ -307,6 +310,50 @@ class BubbleOverlayView(context: Context) : View(context) {
     }
 
     /**
+     * Small lettering on open artwork or narration outside a confirmed balloon.
+     * Keep the source art untouched: the French is offset from the OCR box and
+     * drawn directly, with only a subtle contrasting shadow for legibility.
+     */
+    private fun placeFloatingText(b: RenderBubble, occupied: List<RectF>): Placed? {
+        val screenW = (if (width > 0) width else resources.displayMetrics.widthPixels).toFloat()
+        val screenH = (if (height > 0) height else resources.displayMetrics.heightPixels).toFloat()
+        val tp = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = b.textColor
+            textSize = dp((b.box.height() / resources.displayMetrics.density * 0.72f).coerceIn(9f, 15f) * textScale)
+            typeface = dialogueFace
+            setShadowLayer(dp(1.5f), 0f, dp(0.5f), if (b.textColor == Color.WHITE) Color.BLACK else Color.WHITE)
+        }
+        val maxWidth = (screenW * 0.58f).toInt().coerceAtLeast(dp(48f).toInt())
+        var layout = StaticLayout.Builder
+            .obtain(b.translated, 0, b.translated.length, tp, maxWidth)
+            .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+            .setLineSpacing(0f, 1.02f)
+            .setIncludePad(false)
+            .build()
+        while (layout.height > dp(72f) && tp.textSize > dp(9f)) {
+            tp.textSize -= dp(1f)
+            layout = StaticLayout.Builder
+                .obtain(b.translated, 0, b.translated.length, tp, maxWidth)
+                .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+                .setLineSpacing(0f, 1.02f)
+                .setIncludePad(false)
+                .build()
+        }
+        var textWidth = 0f
+        for (i in 0 until layout.lineCount) textWidth = maxOf(textWidth, layout.getLineWidth(i))
+        val drawnWidth = textWidth.toInt().coerceAtLeast(dp(24f).toInt()).coerceAtMost(maxWidth)
+        val offset = dp(5f)
+        var x = b.box.left + offset
+        var y = b.box.bottom + dp(2f)
+        if (y + layout.height > screenH - dp(2f)) y = b.box.top - layout.height - dp(2f)
+        x = x.coerceIn(dp(2f), (screenW - drawnWidth - dp(2f)).coerceAtLeast(dp(2f)))
+        y = y.coerceIn(dp(2f), (screenH - layout.height - dp(2f)).coerceAtLeast(dp(2f)))
+        val bounds = RectF(x, y, x + drawnWidth, y + layout.height)
+        nudgeClear(bounds, occupied, screenH)
+        return Placed(bounds, layout, bounds.left, bounds.top, Color.TRANSPARENT)
+    }
+
+    /**
      * The balloon interior as a tintable stamp, shrunk by one mask cell: a
      * cell survives only when all four neighbours are interior too, and the
      * mask border always dies. The ring this gives up is what keeps the
@@ -327,10 +374,31 @@ class BubbleOverlayView(context: Context) : View(context) {
         // translation background.
         val px = IntArray(w * h)
         var any = false
-        for (i in mask.indices) {
-            if (!mask[i]) continue
-            px[i] = Color.WHITE
-            any = true
+        // Slightly dilate the cleaning mask inside its existing bounds. OCR
+        // boxes near the rim often include a few pixels of glyph overhang;
+        // using only the raw interior mask leaves those original strokes
+        // visible beside an otherwise correctly translated balloon.
+        for (y in 0 until h) {
+            for (x in 0 until w) {
+                var inside = mask[y * w + x]
+                if (!inside) {
+                    for (dy in -1..1) {
+                        for (dx in -1..1) {
+                            val nx = x + dx
+                            val ny = y + dy
+                            if (nx in 0 until w && ny in 0 until h && mask[ny * w + nx]) {
+                                inside = true
+                                break
+                            }
+                        }
+                        if (inside) break
+                    }
+                }
+                if (inside) {
+                    px[y * w + x] = Color.WHITE
+                    any = true
+                }
+            }
         }
         if (!any) return null
         return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
@@ -667,9 +735,6 @@ class BubbleOverlayView(context: Context) : View(context) {
                 maskPaint.alpha = 255
                 maskPaint.colorFilter = p.tint
                 canvas.drawBitmap(p.mask, null, p.maskDst, maskPaint)
-                p.outline?.let { outline ->
-                    canvas.drawBitmap(outline, null, p.maskDst, outlinePaint)
-                }
             } else if (p.card != null) {
                 p.wipe?.let { wipe ->
                     bgPaint.color = Color.argb(

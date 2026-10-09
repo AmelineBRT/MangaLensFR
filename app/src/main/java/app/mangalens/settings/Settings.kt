@@ -18,7 +18,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 
-enum class EngineKind { GOOGLE, LLM, MLKIT }
+enum class EngineKind { GOOGLE, MYMEMORY, MICROSOFT, DEEPL, LLM, MLKIT }
 enum class LlmProvider { ANTHROPIC, OPENAI, GEMINI, OPENROUTER, CUSTOM }
 enum class SourceLang { AUTO, EN, KO, JA, ZH }
 enum class CaptureMode { AUTO, MANUAL }
@@ -45,6 +45,9 @@ data class AppSettings(
     val engine: EngineKind = EngineKind.GOOGLE,
     val provider: LlmProvider = LlmProvider.ANTHROPIC,
     val apiKey: String = "",
+    val deeplApiKey: String = "",
+    val microsoftApiKey: String = "",
+    val microsoftRegion: String = "westeurope",
     val model: String = "",
     val customUrl: String = "",
     val sourceLang: SourceLang = SourceLang.AUTO,
@@ -59,6 +62,8 @@ data class AppSettings(
      * unrelated — without this there is no way to tell which from the screen.
      */
     val diagnostics: Boolean = false,
+    /** Use Android trusted accessibility overlay instead of the normal app overlay (opt-in test mode). */
+    val useAccessibilityOverlay: Boolean = false,
     val textScale: Float = 1.0f,
     val bgOpacity: Float = 1.0f,
     val stabilityMs: Int = 350,
@@ -99,6 +104,7 @@ private object Keys {
     val AI_REASONING = stringPreferencesKey("ai_reasoning")
     val DATA_SAVER = booleanPreferencesKey("data_saver")
     val DIAGNOSTICS = booleanPreferencesKey("diagnostics")
+    val USE_ACCESSIBILITY_OVERLAY = booleanPreferencesKey("use_accessibility_overlay")
     val TEXT_SCALE = floatPreferencesKey("text_scale")
     val BG_OPACITY = floatPreferencesKey("bg_opacity")
     val STABILITY_MS = intPreferencesKey("stability_ms")
@@ -110,6 +116,9 @@ private object Keys {
     private val API_KEY_GEMINI = stringPreferencesKey("api_key_gemini")
     private val API_KEY_OPENROUTER = stringPreferencesKey("api_key_openrouter")
     private val API_KEY_CUSTOM = stringPreferencesKey("api_key_custom")
+    val DEEPL_API_KEY = stringPreferencesKey("api_key_deepl")
+    val MICROSOFT_API_KEY = stringPreferencesKey("api_key_microsoft")
+    val MICROSOFT_REGION = stringPreferencesKey("api_region_microsoft")
 
     private val MODEL_ANTHROPIC = stringPreferencesKey("model_anthropic")
     private val MODEL_OPENAI = stringPreferencesKey("model_openai")
@@ -223,6 +232,9 @@ internal fun settingsFromPreferences(p: Preferences, credentials: Preferences = 
         engine = enumOr(p[Keys.ENGINE], d.engine),
         provider = provider,
         apiKey = credentials[Keys.apiKey(provider)] ?: d.apiKey,
+        deeplApiKey = credentials[Keys.DEEPL_API_KEY] ?: d.deeplApiKey,
+        microsoftApiKey = credentials[Keys.MICROSOFT_API_KEY] ?: d.microsoftApiKey,
+        microsoftRegion = p[Keys.MICROSOFT_REGION] ?: d.microsoftRegion,
         model = p[Keys.model(provider)] ?: d.model,
         customUrl = p[Keys.CUSTOM_URL] ?: d.customUrl,
         sourceLang = enumOr(p[Keys.SOURCE_LANG], d.sourceLang),
@@ -231,6 +243,7 @@ internal fun settingsFromPreferences(p: Preferences, credentials: Preferences = 
         aiReasoning = enumOr(p[Keys.AI_REASONING], d.aiReasoning),
         dataSaver = p[Keys.DATA_SAVER] ?: d.dataSaver,
         diagnostics = p[Keys.DIAGNOSTICS] ?: d.diagnostics,
+        useAccessibilityOverlay = p[Keys.USE_ACCESSIBILITY_OVERLAY] ?: d.useAccessibilityOverlay,
         textScale = p[Keys.TEXT_SCALE] ?: d.textScale,
         bgOpacity = p[Keys.BG_OPACITY] ?: d.bgOpacity,
         stabilityMs = p[Keys.STABILITY_MS] ?: d.stabilityMs,
@@ -253,6 +266,9 @@ class SettingsRepository(private val context: Context) {
     suspend fun setProvider(v: LlmProvider) = context.settingsStore.edit { it[Keys.PROVIDER] = v.name }
     suspend fun setApiKey(provider: LlmProvider, v: String) =
         context.credentialsStore.edit { it[Keys.apiKey(provider)] = v }
+    suspend fun setDeepLApiKey(v: String) = context.credentialsStore.edit { it[Keys.DEEPL_API_KEY] = v }
+    suspend fun setMicrosoftApiKey(v: String) = context.credentialsStore.edit { it[Keys.MICROSOFT_API_KEY] = v }
+    suspend fun setMicrosoftRegion(v: String) = context.settingsStore.edit { it[Keys.MICROSOFT_REGION] = v }
     suspend fun setModel(provider: LlmProvider, v: String) =
         context.settingsStore.edit { it[Keys.model(provider)] = v }
     suspend fun setCustomUrl(v: String) = context.settingsStore.edit { it[Keys.CUSTOM_URL] = v }
@@ -262,6 +278,7 @@ class SettingsRepository(private val context: Context) {
     suspend fun setAiReasoning(v: AiReasoning) = context.settingsStore.edit { it[Keys.AI_REASONING] = v.name }
     suspend fun setDataSaver(v: Boolean) = context.settingsStore.edit { it[Keys.DATA_SAVER] = v }
     suspend fun setDiagnostics(v: Boolean) = context.settingsStore.edit { it[Keys.DIAGNOSTICS] = v }
+    suspend fun setUseAccessibilityOverlay(v: Boolean) = context.settingsStore.edit { it[Keys.USE_ACCESSIBILITY_OVERLAY] = v }
     suspend fun setTextScale(v: Float) = context.settingsStore.edit { it[Keys.TEXT_SCALE] = v }
     suspend fun setBgOpacity(v: Float) = context.settingsStore.edit { it[Keys.BG_OPACITY] = v }
     suspend fun setStabilityMs(v: Int) = context.settingsStore.edit { it[Keys.STABILITY_MS] = v }

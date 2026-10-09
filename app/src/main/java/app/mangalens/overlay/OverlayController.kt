@@ -22,7 +22,11 @@ import kotlin.math.abs
  * draggable floating button with its status pill, and the long-press quick menu.
  * All methods must be called from the main thread.
  */
-class OverlayController(private val context: Context, private val listener: Listener) {
+class OverlayController(
+    private val context: Context,
+    private val listener: Listener,
+    private val useAccessibilityOverlay: Boolean = false,
+) {
 
     interface Listener {
         fun onTranslateNow()
@@ -51,6 +55,7 @@ class OverlayController(private val context: Context, private val listener: List
     private var selection: View? = null
     private var controlsLp: WindowManager.LayoutParams? = null
     private var attached = false
+    private var bubbleViewInAccessibility = false
     private val hidePill = Runnable { pill?.visibility = View.GONE }
 
     /**
@@ -86,7 +91,15 @@ class OverlayController(private val context: Context, private val listener: List
             bubbleLp.layoutInDisplayCutoutMode =
                 WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
         }
-        wm.addView(bubbleView, bubbleLp)
+        // Prefer Android's trusted accessibility overlay for the page layer:
+        // its white balloon masks remain fully opaque over readers such as Mihon.
+        // Keep the ordinary overlay as a fallback if the accessibility service
+        // was disabled while MangaLens was already running.
+        bubbleViewInAccessibility =
+            useAccessibilityOverlay && MangaLensAccessibilityService.attachOverlay(bubbleView)
+        if (!bubbleViewInAccessibility) {
+            wm.addView(bubbleView, bubbleLp)
+        }
         buildControls()
         attached = true
     }
@@ -95,7 +108,12 @@ class OverlayController(private val context: Context, private val listener: List
         if (!attached) return
         dismissMenu()
         finishSelection()
-        runCatching { wm.removeView(bubbleView) }
+        if (bubbleViewInAccessibility) {
+            MangaLensAccessibilityService.detachOverlay(bubbleView)
+            bubbleViewInAccessibility = false
+        } else {
+            runCatching { wm.removeView(bubbleView) }
+        }
         controls?.let { runCatching { wm.removeView(it) } }
         controls = null
         onFootprintChanged = null

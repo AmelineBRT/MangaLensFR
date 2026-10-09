@@ -4,10 +4,8 @@ import app.mangalens.ocr.Script
 import app.mangalens.settings.SourceLang
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withPermit
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import okhttp3.FormBody
 import okhttp3.OkHttpClient
@@ -33,16 +31,32 @@ class GoogleFreeEngine : TranslationEngine {
         .readTimeout(12, TimeUnit.SECONDS)
         .build()
 
+    private val requestMutex = Mutex()
+    @Volatile private var blockedUntilMs = 0L
+
+    private class RateLimitException(message: String) : RuntimeException(message)
+
     override suspend fun translate(items: List<String>, lang: SourceLang): List<String> {
         if (items.isEmpty()) return emptyList()
-        if (items.size > 1) {
-            runCatching { translateBatch(items, lang) }.getOrNull()?.let { return it }
-        }
-        return coroutineScope {
-            val semaphore = Semaphore(5)
-            items.map { text ->
-                async { semaphore.withPermit { translateOne(text, lang) } }
-            }.map { it.await() }
+        return requestMutex.withLock {
+            val waitMs = blockedUntilMs - System.currentTimeMillis()
+            if (waitMs > 0L) {
+                val seconds = ((waitMs + 999L) / 1000L).coerceAtLeast(1L)
+                throw RateLimitException("Google Translate est temporairement limité. Attends encore environ ${seconds} s avant de reprendre.")
+            }
+            if (items.size > 1) {
+                try {
+                    translateBatch(items, lang)?.let { return@withLock it }
+                } catch (e: RateLimitException) {
+                    throw e
+                } catch (_: Exception) {
+                    // Only a malformed/un-alignable batch falls back to single
+                    // requests. Rate limits never trigger a burst of retries.
+                }
+            }
+            // Deliberately sequential: concurrent per-bubble requests turn a
+            // temporary HTTP 429 into a cascade of rate-limit failures.
+            items.map { translateOne(it, lang) }
         }
     }
 
@@ -108,6 +122,11 @@ class GoogleFreeEngine : TranslationEngine {
                 .post(FormBody.Builder().add("q", text).build())
                 .build()
             LlmHttp.await(client.newCall(request)).use { resp ->
+                if (resp.code == 429) {
+                    val seconds = (resp.header("Retry-After")?.toLongOrNull() ?: 60L).coerceIn(15L, 300L)
+                    blockedUntilMs = System.currentTimeMillis() + seconds * 1000L
+                    throw RateLimitException("Google Translate a limité les requêtes (HTTP 429). Attends environ ${seconds} s avant de reprendre.")
+                }
                 if (!resp.isSuccessful) throw RuntimeException("Google translate HTTP " + resp.code)
                 val body = resp.body?.string() ?: throw RuntimeException("réponse de traduction vide")
                 val rows = JSONArray(body).getJSONArray(0)

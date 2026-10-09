@@ -61,9 +61,12 @@ import app.mangalens.settings.LlmProvider
 import app.mangalens.settings.SettingsRepository
 import app.mangalens.settings.SourceLang
 import app.mangalens.translate.GoogleFreeEngine
+import app.mangalens.translate.DeepLEngine
+import app.mangalens.translate.MyMemoryEngine
 import app.mangalens.translate.LlmEngine
 import app.mangalens.translate.MlKitEngine
 import app.mangalens.translate.ModelCatalog
+import app.mangalens.translate.MicrosoftTranslatorEngine
 import app.mangalens.update.UpdateChecker
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -264,27 +267,104 @@ private fun EngineCard(settings: AppSettings, repo: SettingsRepository) {
         Column(Modifier.padding(16.dp)) {
             SectionTitle("Moteur de traduction")
             Spacer(Modifier.height(10.dp))
+            Text("Sans clé API · sans paiement direct (quotas possibles)", style = MaterialTheme.typography.bodyMedium)
+            Spacer(Modifier.height(6.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Chip("Gratuit · Google", settings.engine == EngineKind.GOOGLE) {
+                Chip("Google", settings.engine == EngineKind.GOOGLE) {
                     scope.launch { repo.setEngine(EngineKind.GOOGLE) }
                 }
-                Chip("IA Pro ✨", settings.engine == EngineKind.LLM) {
-                    scope.launch { repo.setEngine(EngineKind.LLM) }
+                Chip("MyMemory", settings.engine == EngineKind.MYMEMORY) {
+                    scope.launch { repo.setEngine(EngineKind.MYMEMORY) }
                 }
                 Chip("Hors ligne", settings.engine == EngineKind.MLKIT) {
                     scope.launch { repo.setEngine(EngineKind.MLKIT) }
                 }
             }
+            Spacer(Modifier.height(12.dp))
+            Text("Avec clé API · gratuit selon l’offre ou payant", style = MaterialTheme.typography.bodyMedium)
+            Spacer(Modifier.height(6.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Chip("DeepL API", settings.engine == EngineKind.DEEPL) {
+                    scope.launch { repo.setEngine(EngineKind.DEEPL) }
+                }
+                Chip("Microsoft", settings.engine == EngineKind.MICROSOFT) {
+                    scope.launch { repo.setEngine(EngineKind.MICROSOFT) }
+                }
+            }
+            Spacer(Modifier.height(6.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Chip("IA Pro ✨", settings.engine == EngineKind.LLM) {
+                    scope.launch { repo.setEngine(EngineKind.LLM) }
+                }
+            }
             Spacer(Modifier.height(8.dp))
             Text(
                 when (settings.engine) {
-                    EngineKind.GOOGLE -> "Fonctionne immédiatement, sans configuration. Bonne qualité au quotidien."
+                    EngineKind.GOOGLE -> "Sans clé. Si Google bloque temporairement les requêtes, MangaLens essaie MyMemory puis le moteur hors ligne."
+                    EngineKind.MYMEMORY -> "Service en ligne sans clé. Il a ses propres quotas et peut lui aussi être indisponible ; Google et le moteur hors ligne servent de secours."
+                    EngineKind.MICROSOFT -> "Microsoft Translator officiel via Azure. Le compte Azure nécessite une clé et une région ; l’offre F0 inclut un quota mensuel gratuit. En cas d’échec, MangaLens essaie Google puis MyMemory."
+                    EngineKind.DEEPL -> "DeepL API. Une clé est nécessaire ; une clé DeepL API Free peut bénéficier d’un quota gratuit. Sinon les tarifs et limites de ton compte s’appliquent. En cas d’échec, MangaLens essaie Google puis MyMemory."
                     EngineKind.LLM -> "L’IA lit les pages entières (y compris l’image) avec le contexte de l’histoire, un glossaire des noms, un ton naturel et les honorifiques. Une première traduction apparaît rapidement puis est améliorée. Une clé est nécessaire pour ce mode — celle de Gemini peut être gratuite."
-                    EngineKind.MLKIT -> "100 % hors ligne après le téléchargement initial d'environ 30 Mo par langue. Qualité la plus simple des trois."
+                    EngineKind.MLKIT -> "100 % hors ligne après le téléchargement initial d'environ 30 Mo par langue. Qualité la plus simple."
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+
+            if (settings.engine == EngineKind.MICROSOFT) {
+                Spacer(Modifier.height(12.dp))
+                var showMicrosoftKey by remember { mutableStateOf(false) }
+                OutlinedTextField(
+                    value = settings.microsoftApiKey,
+                    onValueChange = { value -> scope.launch { repo.setMicrosoftApiKey(value.trim()) } },
+                    label = { Text("Clé API Microsoft Translator") },
+                    singleLine = true,
+                    visualTransformation = if (showMicrosoftKey) VisualTransformation.None else PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    trailingIcon = {
+                        Text(
+                            if (showMicrosoftKey) "masquer" else "afficher",
+                            modifier = Modifier.clickable { showMicrosoftKey = !showMicrosoftKey }.padding(end = 10.dp),
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = settings.microsoftRegion,
+                    onValueChange = { value -> scope.launch { repo.setMicrosoftRegion(value.trim()) } },
+                    label = { Text("Région Azure (ex. westeurope)") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                val uriHandler = LocalUriHandler.current
+                Text("Créer une ressource Translator gratuite (F0) →", modifier = Modifier.clickable { uriHandler.openUri("https://portal.azure.com/") }.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
+            }
+
+            if (settings.engine == EngineKind.DEEPL) {
+                Spacer(Modifier.height(12.dp))
+                var showDeepLKey by remember { mutableStateOf(false) }
+                OutlinedTextField(
+                    value = settings.deeplApiKey,
+                    onValueChange = { value -> scope.launch { repo.setDeepLApiKey(value.trim()) } },
+                    label = { Text("Clé API DeepL") },
+                    singleLine = true,
+                    visualTransformation = if (showDeepLKey) VisualTransformation.None else PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    trailingIcon = {
+                        Text(
+                            if (showDeepLKey) "masquer" else "afficher",
+                            modifier = Modifier.clickable { showDeepLKey = !showDeepLKey }.padding(end = 10.dp),
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                val uriHandler = LocalUriHandler.current
+                Text("Créer une clé DeepL API →", modifier = Modifier.clickable { uriHandler.openUri("https://www.deepl.com/pro-api") }.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
+            }
 
             if (settings.engine == EngineKind.LLM) {
                 Spacer(Modifier.height(12.dp))
@@ -450,6 +530,9 @@ private fun EngineCard(settings: AppSettings, repo: SettingsRepository) {
                                     EngineKind.LLM -> LlmEngine(draftSettings).translate(sample, SourceLang.AUTO)
                                     EngineKind.MLKIT -> MlKitEngine().translate(sample, SourceLang.AUTO)
                                     EngineKind.GOOGLE -> GoogleFreeEngine().translate(sample, SourceLang.AUTO)
+                                    EngineKind.MYMEMORY -> MyMemoryEngine().translate(sample, SourceLang.AUTO)
+                                    EngineKind.DEEPL -> DeepLEngine(settings.deeplApiKey).translate(sample, SourceLang.AUTO)
+                                    EngineKind.MICROSOFT -> MicrosoftTranslatorEngine(settings.microsoftApiKey, settings.microsoftRegion).translate(sample, SourceLang.AUTO)
                                 }
                                 "“I'll stay with you. It's okay.” → “" + out.first() + "”"
                             } catch (e: Exception) {
@@ -573,6 +656,25 @@ private fun LectureCard(settings: AppSettings, repo: SettingsRepository) {
                     scope.launch { repo.setMode(CaptureMode.MANUAL) }
                 }
             }
+            Spacer(Modifier.height(14.dp))
+            Text("Mode de rendu pour les tests", style = MaterialTheme.typography.bodyMedium)
+            Spacer(Modifier.height(6.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Chip("Classique", !settings.useAccessibilityOverlay) {
+                    scope.launch { repo.setUseAccessibilityOverlay(false) }
+                }
+                Chip("Accessibilité (test)", settings.useAccessibilityOverlay) {
+                    scope.launch { repo.setUseAccessibilityOverlay(true) }
+                }
+            }
+            Text(
+                if (settings.useAccessibilityOverlay)
+                    "Le mode de test utilise la couche d’accessibilité Android pour rendre les masques plus opaques. Il faut activer le service MangaLens dans les réglages Android."
+                else
+                    "Mode classique, recommandé par défaut : aucune activation du service d’accessibilité n’est nécessaire.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             Spacer(Modifier.height(14.dp))
             LabeledSlider(
                 "Temps de réaction",
