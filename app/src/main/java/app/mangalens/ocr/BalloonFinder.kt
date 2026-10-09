@@ -128,7 +128,7 @@ object BalloonFinder {
     private const val FLAT_CONTRAST = 48
 
     /** Share of a balloon's interior that may be art-like before it is rejected. */
-    private const val MAX_ART = 0.12f
+    private const val MAX_ART = 0.08f
 
     /** Fractions of the analysed page a balloon may occupy. */
     private const val MIN_AREA = 0.0012f
@@ -151,8 +151,8 @@ object BalloonFinder {
      * balloon drawn inside it and welds their separate lines into one — two
      * characters speaking in one card, centred on the panel.
      */
-    private const val MIN_FILL = 0.55f
-    private const val MAX_FILL = 0.93f
+    private const val MIN_FILL = 0.62f
+    private const val MAX_FILL = 0.90f
 
     /**
      * The raw interior — the flooded cells alone, lettering excluded — may
@@ -160,7 +160,7 @@ object BalloonFinder {
      * rescue the shape. Dense lettering can hide half a balloon's interior;
      * a hole any larger than that is art, not text.
      */
-    private const val RAW_FILL_SLACK = 0.5f
+    private const val RAW_FILL_SLACK = 0.30f
 
     /** Share of the interior that must be lettering for a blob to be a balloon. */
     private const val MIN_INK = 0.02f
