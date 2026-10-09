@@ -430,7 +430,7 @@ class TranslatePipeline(
         // merely because BalloonFinder failed to recognize their surrounding shape.
         // The old explicit outside-balloon switch remains accepted for callers
         // but is no longer needed to unlock text.
-        val targetBubbles = bubbles.filter { it.text.isNotBlank() }
+        val targetBubbles = bubbles.filter { it.text.isNotBlank() && it.kind != BubbleKind.SFX }
 
         if (settings.engine != EngineKind.LLM) {
             val result = machineTranslate(bitmap, targetBubbles, ocrResult.lang, settings, detected, translateOutsideBalloons, onPartial = onPartial)
@@ -577,7 +577,7 @@ class TranslatePipeline(
         // Balloons detected in the pixels but unread by OCR carry no text; the
         // machine engines have nothing to work from and would render blanks.
         val dialogue = rowWiseOrder(
-            bubbles.filter { it.text.isNotBlank() && (translateOutsideBalloons || it.kind != BubbleKind.SFX) }
+            bubbles.filter { it.text.isNotBlank() && it.kind != BubbleKind.SFX }
         )
         if (dialogue.isEmpty()) return PageResult(emptyList(), "Google", null)
 
@@ -585,33 +585,29 @@ class TranslatePipeline(
         var label = "Google"
         var note: String? = null
 
-        // Translate one visual row at a time. GoogleFreeEngine can batch a
-        // row in one request (or parallelize it as a fallback), which is much
-        // faster than one network round-trip per balloon. Results are still
-        // emitted one-by-one left-to-right so the reader sees the requested
-        // progressive order.
-        val rows = rowWiseGroups(dialogue)
-        for (row in rows) {
-            val outcome = translation.translate(
-                row.map { it.text },
-                lang,
-                settings,
-                kinds = row.map { it.kind },
-                runs = row.map { it.runId },
-                parts = row.map { it.runPart },
-                forceGoogle = forceGoogle,
+        // Translate the whole visible page in one batch. Calling Google once
+        // per visual row was easy to rate-limit while scrolling quickly; the
+        // provider already supports newline-separated entries and aligns its
+        // response back to each source bubble. Keep rendering in reading order.
+        val outcome = translation.translate(
+            dialogue.map { it.text },
+            lang,
+            settings,
+            kinds = dialogue.map { it.kind },
+            runs = dialogue.map { it.runId },
+            parts = dialogue.map { it.runPart },
+            forceGoogle = forceGoogle,
+        )
+        label = outcome.engineLabel
+        note = outcome.note
+        for (index in dialogue.indices) {
+            val bubble = dialogue[index]
+            val translated = outcome.texts.getOrNull(index).orEmpty()
+            val gated = JunkFilter.accept(bubble.text, translated, lang) ?: continue
+            rendered.add(
+                renderBubble(bitmap, bubble.box, gated, bubble.text, bubble.vertical, bubble.kind, detected)
             )
-            label = outcome.engineLabel
-            note = outcome.note ?: note
-            for (index in row.indices) {
-                val bubble = row[index]
-                val translated = outcome.texts.getOrNull(index).orEmpty()
-                val gated = JunkFilter.accept(bubble.text, translated, lang) ?: continue
-                rendered.add(
-                    renderBubble(bitmap, bubble.box, gated, bubble.text, bubble.vertical, bubble.kind, detected)
-                )
-                onPartial?.invoke(PageResult(rendered.toList(), label, note))
-            }
+            onPartial?.invoke(PageResult(rendered.toList(), label, note))
         }
 
         return PageResult(rendered.toList(), label, note)
@@ -996,6 +992,7 @@ class TranslatePipeline(
             balloon = balloon,
             fill = fill,
             outline = outline,
+            floatingText = balloon == null && kind != BubbleKind.SFX,
         )
     }
 
@@ -1031,8 +1028,26 @@ class TranslatePipeline(
      */
     private fun balloonFor(box: Rect, detected: List<Balloon>): Balloon? {
         detected.firstOrNull { it.box == box }?.let { return it }
-        return detected.filter { textInsideBalloon(box, it) }
-            .maxByOrNull { containedShare(box, it.box) }
+        val cx = box.centerX()
+        val cy = box.centerY()
+        // OCR boxes occasionally include margins or only part of a word. If
+        // their centre is still inside the detected balloon mask, treat the
+        // text as belonging to that balloon instead of falling back to a huge
+        // rectangular card that leaves a few source glyphs visible.
+        return detected.filter { balloon ->
+            textInsideBalloon(box, balloon) ||
+                (balloon.box.contains(cx, cy) && maskContains(balloon, cx, cy))
+        }.maxByOrNull { containedShare(box, it.box) }
+    }
+
+    private fun maskContains(balloon: Balloon, x: Int, y: Int): Boolean {
+        if (!balloon.box.contains(x, y) || balloon.maskW <= 0 || balloon.maskH <= 0) return false
+        val mx = ((x - balloon.box.left).toFloat() / balloon.box.width() * balloon.maskW)
+            .toInt().coerceIn(0, balloon.maskW - 1)
+        val my = ((y - balloon.box.top).toFloat() / balloon.box.height() * balloon.maskH)
+            .toInt().coerceIn(0, balloon.maskH - 1)
+        val index = my * balloon.maskW + mx
+        return index in balloon.mask.indices && balloon.mask[index]
     }
 
     /** Fraction of [box] inside [within]. */
