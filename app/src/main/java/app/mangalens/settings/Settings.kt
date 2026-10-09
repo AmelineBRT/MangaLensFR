@@ -18,7 +18,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 
-enum class EngineKind { GOOGLE, MYMEMORY, DEEPL, LLM, MLKIT }
+enum class EngineKind { GOOGLE, MYMEMORY, MICROSOFT, DEEPL, LLM, MLKIT }
 enum class LlmProvider { ANTHROPIC, OPENAI, GEMINI, OPENROUTER, CUSTOM }
 enum class SourceLang { AUTO, EN, KO, JA, ZH }
 enum class CaptureMode { AUTO, MANUAL }
@@ -46,6 +46,8 @@ data class AppSettings(
     val provider: LlmProvider = LlmProvider.ANTHROPIC,
     val apiKey: String = "",
     val deeplApiKey: String = "",
+    val microsoftApiKey: String = "",
+    val microsoftRegion: String = "westeurope",
     val model: String = "",
     val customUrl: String = "",
     val sourceLang: SourceLang = SourceLang.AUTO,
@@ -115,6 +117,8 @@ private object Keys {
     private val API_KEY_OPENROUTER = stringPreferencesKey("api_key_openrouter")
     private val API_KEY_CUSTOM = stringPreferencesKey("api_key_custom")
     val DEEPL_API_KEY = stringPreferencesKey("api_key_deepl")
+    val MICROSOFT_API_KEY = stringPreferencesKey("api_key_microsoft")
+    val MICROSOFT_REGION = stringPreferencesKey("api_region_microsoft")
 
     private val MODEL_ANTHROPIC = stringPreferencesKey("model_anthropic")
     private val MODEL_OPENAI = stringPreferencesKey("model_openai")
@@ -229,6 +233,8 @@ internal fun settingsFromPreferences(p: Preferences, credentials: Preferences = 
         provider = provider,
         apiKey = credentials[Keys.apiKey(provider)] ?: d.apiKey,
         deeplApiKey = credentials[Keys.DEEPL_API_KEY] ?: d.deeplApiKey,
+        microsoftApiKey = credentials[Keys.MICROSOFT_API_KEY] ?: d.microsoftApiKey,
+        microsoftRegion = p[Keys.MICROSOFT_REGION] ?: d.microsoftRegion,
         model = p[Keys.model(provider)] ?: d.model,
         customUrl = p[Keys.CUSTOM_URL] ?: d.customUrl,
         sourceLang = enumOr(p[Keys.SOURCE_LANG], d.sourceLang),
@@ -261,6 +267,8 @@ class SettingsRepository(private val context: Context) {
     suspend fun setApiKey(provider: LlmProvider, v: String) =
         context.credentialsStore.edit { it[Keys.apiKey(provider)] = v }
     suspend fun setDeepLApiKey(v: String) = context.credentialsStore.edit { it[Keys.DEEPL_API_KEY] = v }
+    suspend fun setMicrosoftApiKey(v: String) = context.credentialsStore.edit { it[Keys.MICROSOFT_API_KEY] = v }
+    suspend fun setMicrosoftRegion(v: String) = context.settingsStore.edit { it[Keys.MICROSOFT_REGION] = v }
     suspend fun setModel(provider: LlmProvider, v: String) =
         context.settingsStore.edit { it[Keys.model(provider)] = v }
     suspend fun setCustomUrl(v: String) = context.settingsStore.edit { it[Keys.CUSTOM_URL] = v }
