@@ -286,6 +286,12 @@ private fun EngineCard(settings: AppSettings, repo: SettingsRepository) {
                 Chip("DeepL API", settings.engine == EngineKind.DEEPL) {
                     scope.launch { repo.setEngine(EngineKind.DEEPL) }
                 }
+                Chip("Microsoft", settings.engine == EngineKind.MICROSOFT) {
+                    scope.launch { repo.setEngine(EngineKind.MICROSOFT) }
+                }
+            }
+            Spacer(Modifier.height(6.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Chip("IA Pro ✨", settings.engine == EngineKind.LLM) {
                     scope.launch { repo.setEngine(EngineKind.LLM) }
                 }
@@ -295,6 +301,7 @@ private fun EngineCard(settings: AppSettings, repo: SettingsRepository) {
                 when (settings.engine) {
                     EngineKind.GOOGLE -> "Sans clé. Si Google bloque temporairement les requêtes, MangaLens essaie MyMemory puis le moteur hors ligne."
                     EngineKind.MYMEMORY -> "Service en ligne sans clé. Il a ses propres quotas et peut lui aussi être indisponible ; Google et le moteur hors ligne servent de secours."
+                    EngineKind.MICROSOFT -> "Microsoft Translator officiel via Azure. Le compte Azure nécessite une clé et une région ; l’offre F0 inclut un quota mensuel gratuit. En cas d’échec, MangaLens essaie Google puis MyMemory."
                     EngineKind.DEEPL -> "DeepL API. Une clé est nécessaire ; une clé DeepL API Free peut bénéficier d’un quota gratuit. Sinon les tarifs et limites de ton compte s’appliquent. En cas d’échec, MangaLens essaie Google puis MyMemory."
                     EngineKind.LLM -> "L’IA lit les pages entières (y compris l’image) avec le contexte de l’histoire, un glossaire des noms, un ton naturel et les honorifiques. Une première traduction apparaît rapidement puis est améliorée. Une clé est nécessaire pour ce mode — celle de Gemini peut être gratuite."
                     EngineKind.MLKIT -> "100 % hors ligne après le téléchargement initial d'environ 30 Mo par langue. Qualité la plus simple."
@@ -302,6 +309,37 @@ private fun EngineCard(settings: AppSettings, repo: SettingsRepository) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+
+            if (settings.engine == EngineKind.MICROSOFT) {
+                Spacer(Modifier.height(12.dp))
+                var showMicrosoftKey by remember { mutableStateOf(false) }
+                OutlinedTextField(
+                    value = settings.microsoftApiKey,
+                    onValueChange = { value -> scope.launch { repo.setMicrosoftApiKey(value.trim()) } },
+                    label = { Text("Clé API Microsoft Translator") },
+                    singleLine = true,
+                    visualTransformation = if (showMicrosoftKey) VisualTransformation.None else PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    trailingIcon = {
+                        Text(
+                            if (showMicrosoftKey) "masquer" else "afficher",
+                            modifier = Modifier.clickable { showMicrosoftKey = !showMicrosoftKey }.padding(end = 10.dp),
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = settings.microsoftRegion,
+                    onValueChange = { value -> scope.launch { repo.setMicrosoftRegion(value.trim()) } },
+                    label = { Text("Région Azure (ex. westeurope)") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                val uriHandler = LocalUriHandler.current
+                Text("Créer une ressource Translator gratuite (F0) →", modifier = Modifier.clickable { uriHandler.openUri("https://portal.azure.com/") }.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
+            }
 
             if (settings.engine == EngineKind.DEEPL) {
                 Spacer(Modifier.height(12.dp))
