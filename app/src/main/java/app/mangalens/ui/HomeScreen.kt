@@ -574,6 +574,25 @@ private fun LectureCard(settings: AppSettings, repo: SettingsRepository) {
                 }
             }
             Spacer(Modifier.height(14.dp))
+            Text("Mode de rendu pour les tests", style = MaterialTheme.typography.bodyMedium)
+            Spacer(Modifier.height(6.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Chip("Classique", !settings.useAccessibilityOverlay) {
+                    scope.launch { repo.setUseAccessibilityOverlay(false) }
+                }
+                Chip("Accessibilité (test)", settings.useAccessibilityOverlay) {
+                    scope.launch { repo.setUseAccessibilityOverlay(true) }
+                }
+            }
+            Text(
+                if (settings.useAccessibilityOverlay)
+                    "Le mode de test utilise la couche d’accessibilité Android pour rendre les masques plus opaques. Il faut activer le service MangaLens dans les réglages Android."
+                else
+                    "Mode classique, recommandé par défaut : aucune activation du service d’accessibilité n’est nécessaire.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(14.dp))
             LabeledSlider(
                 "Temps de réaction",
                 settings.stabilityMs.toFloat(),
