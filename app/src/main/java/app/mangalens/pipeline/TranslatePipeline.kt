@@ -134,7 +134,7 @@ class TranslatePipeline(
         // OCR + grouping, exactly as in the original fast version of MangaLens.
         // The balloon pixel detector is useful for Vision AI, but putting it on
         // the critical path made every free translation slower.
-        if (settings.engine == EngineKind.GOOGLE) {
+        if (settings.engine != EngineKind.LLM) {
             // Keep Google's fast text-only translation path, but still run the
             // cheap pixel balloon scan in parallel with OCR. Without this scan
             // every OCR word on the page became a translation candidate,
