@@ -103,3 +103,53 @@ class DeepLEngine(private val apiKey: String) : TranslationEngine {
             }
         }
 }
+
+/**
+ * Official Microsoft Azure Translator API. Its F0 tier has a monthly free
+ * character quota; the user supplies the key and Azure resource region.
+ */
+class MicrosoftTranslatorEngine(
+    private val apiKey: String,
+    private val region: String,
+) : TranslationEngine {
+    override val label = "Microsoft Translator · API"
+
+    private val client = OkHttpClient.Builder()
+        .connectTimeout(8, TimeUnit.SECONDS)
+        .readTimeout(20, TimeUnit.SECONDS)
+        .build()
+
+    override suspend fun translate(items: List<String>, lang: SourceLang): List<String> =
+        withContext(Dispatchers.IO) {
+            if (apiKey.isBlank()) throw RuntimeException("Ajoute ta clé API Microsoft Translator.")
+            if (items.isEmpty()) return@withContext emptyList()
+            val url = "https://api.cognitive.microsofttranslator.com/translate?api-version=3.0&to=fr"
+            val payload = org.json.JSONArray()
+            items.forEach { payload.put(JSONObject().put("Text", it)) }
+            val body = okhttp3.RequestBody.create(
+                okhttp3.MediaType.parse("application/json; charset=utf-8"), payload.toString()
+            )
+            val builder = Request.Builder()
+                .url(url)
+                .header("Ocp-Apim-Subscription-Key", apiKey.trim())
+                .header("Content-Type", "application/json; charset=utf-8")
+                .post(body)
+            if (region.isNotBlank()) builder.header("Ocp-Apim-Subscription-Region", region.trim())
+            client.newCall(builder.build()).execute().use { resp ->
+                val response = resp.body?.string().orEmpty()
+                if (!resp.isSuccessful) {
+                    throw RuntimeException("Microsoft Translator HTTP ${resp.code}" +
+                        if (response.isBlank()) "" else ": ${response.take(180)}")
+                }
+                val arr = org.json.JSONArray(response)
+                val out = (0 until arr.length()).map { i ->
+                    arr.optJSONObject(i)?.optJSONArray("translations")
+                        ?.optJSONObject(0)?.optString("text").orEmpty()
+                }
+                if (out.size != items.size || out.any { it.isBlank() }) {
+                    throw RuntimeException("Réponse Microsoft Translator incomplète")
+                }
+                out
+            }
+        }
+}
