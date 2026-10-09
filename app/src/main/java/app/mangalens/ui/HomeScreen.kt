@@ -61,6 +61,8 @@ import app.mangalens.settings.LlmProvider
 import app.mangalens.settings.SettingsRepository
 import app.mangalens.settings.SourceLang
 import app.mangalens.translate.GoogleFreeEngine
+import app.mangalens.translate.DeepLEngine
+import app.mangalens.translate.MyMemoryEngine
 import app.mangalens.translate.LlmEngine
 import app.mangalens.translate.MlKitEngine
 import app.mangalens.translate.ModelCatalog
