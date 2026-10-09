@@ -15,6 +15,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import app.mangalens.capture.ScreenCaptureService
 import app.mangalens.settings.SettingsRepository
 import app.mangalens.ui.HomeScreen
@@ -32,6 +34,7 @@ class MainActivity : ComponentActivity() {
                     .setAction(ScreenCaptureService.ACTION_START)
                     .putExtra(ScreenCaptureService.EXTRA_RESULT_CODE, result.resultCode)
                     .putExtra(ScreenCaptureService.EXTRA_RESULT_DATA, data)
+                    .putExtra(ScreenCaptureService.EXTRA_USE_ACCESSIBILITY, pendingUseAccessibility)
                 ContextCompat.startForegroundService(this, intent)
                 Toast.makeText(
                     this,
@@ -71,13 +74,22 @@ class MainActivity : ComponentActivity() {
             openOverlaySettings()
             return
         }
-        if (!isAccessibilityOverlayEnabled()) {
-            openAccessibilitySettings()
-            return
+        lifecycleScope.launch {
+            val useAccessibility = repo.current().useAccessibilityOverlay
+            if (useAccessibility && !isAccessibilityOverlayEnabled()) {
+                openAccessibilitySettings()
+                return@launch
+            }
+            val mpm = getSystemService(MediaProjectionManager::class.java)
+            val captureIntent = mpm.createScreenCaptureIntent()
+            // Carry the choice into the service so the renderer does not depend
+            // on a race between its settings collector and projection startup.
+            pendingUseAccessibility = useAccessibility
+            projectionLauncher.launch(captureIntent)
         }
-        val mpm = getSystemService(MediaProjectionManager::class.java)
-        projectionLauncher.launch(mpm.createScreenCaptureIntent())
     }
+
+    private var pendingUseAccessibility: Boolean = false
 
     private fun isAccessibilityOverlayEnabled(): Boolean {
         val enabled = Settings.Secure.getString(
